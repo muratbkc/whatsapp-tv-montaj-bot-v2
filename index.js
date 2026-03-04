@@ -2,7 +2,7 @@
 // WhatsApp TV Montaj Bot — Baileys + Express + Admin Panel
 // ============================================================
 
-const { default: makeWASocket, DisconnectReason, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, Browsers, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const express = require('express');
 const http = require('http');
@@ -78,7 +78,6 @@ async function sendMessage(phone, text) {
         return;
     }
     try {
-        // Baileys expects JID format: phone@s.whatsapp.net
         const jid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
         await sock.sendMessage(jid, { text });
         console.log(`[Bot] Message sent to ${phone}`);
@@ -91,13 +90,27 @@ async function sendMessage(phone, text) {
 async function startBot() {
     const { state, saveCreds } = await useRedisAuthState();
 
-    sock = makeWASocket({
+    // Fetch the latest WhatsApp Web version to avoid 405 protocol mismatch
+    let version;
+    try {
+        const versionInfo = await fetchLatestBaileysVersion();
+        version = versionInfo.version;
+        console.log(`[Bot] Using WA Web version: ${version}`);
+    } catch (err) {
+        console.warn('[Bot] Could not fetch WA version, using built-in default');
+    }
+
+    const socketConfig = {
         auth: state,
         browser: Browsers.ubuntu('Chrome'),
         connectTimeoutMs: 60000,
-        // warn level to see real errors but not noise
         logger: require('pino')({ level: 'warn' }),
-    });
+    };
+
+    // Only add version if we successfully fetched it
+    if (version) socketConfig.version = version;
+
+    sock = makeWASocket(socketConfig);
 
     // ---- Connection Events ----
     sock.ev.on('connection.update', async (update) => {
@@ -135,19 +148,16 @@ async function startBot() {
             if (statusCode === reason.loggedOut) {
                 console.log('[Bot] ❌ Logged out — clearing session');
                 await clearAuthState();
-                // Restart to show new QR
                 reconnectAttempts = 0;
                 setTimeout(startBot, 3000);
             } else {
-                // Auto-reconnect for all other disconnect reasons
                 reconnectAttempts++;
                 if (reconnectAttempts <= MAX_RECONNECT) {
                     const delay = Math.min(reconnectAttempts * 3000, 30000);
                     console.log(`[Bot] 🔄 Reconnecting (attempt ${reconnectAttempts}/${MAX_RECONNECT}) in ${delay / 1000}s...`);
                     setTimeout(startBot, delay);
                 } else {
-                    console.error('[Bot] ❌ Max reconnect attempts reached. Manual restart required.');
-                    // Reset counter after 5 minutes and try again
+                    console.error('[Bot] ❌ Max reconnect attempts reached. Will retry in 5 minutes.');
                     setTimeout(() => {
                         reconnectAttempts = 0;
                         startBot();
@@ -165,13 +175,11 @@ async function startBot() {
         if (type !== 'notify') return;
 
         for (const msg of msgs) {
-            // Skip non-text, non-personal, own messages, and status updates
             if (!msg.message) continue;
             if (msg.key.fromMe) continue;
             if (msg.key.remoteJid === 'status@broadcast') continue;
-            if (msg.key.remoteJid?.endsWith('@g.us')) continue; // Skip group messages
+            if (msg.key.remoteJid?.endsWith('@g.us')) continue;
 
-            // Extract text from various message types
             const text =
                 msg.message.conversation ||
                 msg.message.extendedTextMessage?.text ||
@@ -179,7 +187,6 @@ async function startBot() {
 
             if (!text.trim()) continue;
 
-            // Extract phone number from JID
             const phone = msg.key.remoteJid.replace('@s.whatsapp.net', '');
 
             console.log(`[Bot] 📩 Message from ${phone}: ${text.substring(0, 50)}`);
@@ -188,7 +195,6 @@ async function startBot() {
 
             try {
                 await handleMessage(sendMessage, phone, text);
-                // Notify admin panel about possible new customer
                 io.emit('new_customer');
             } catch (err) {
                 console.error(`[Bot] Flow error for ${phone}:`, err.message);
@@ -205,9 +211,9 @@ function startSelfPing() {
             await fetch(`${url}/health`);
             console.log('[Ping] Self-ping OK');
         } catch {
-            // Ignore — internal self-ping may fail on cold start
+            // Ignore
         }
-    }, 14 * 60 * 1000); // Every 14 minutes
+    }, 14 * 60 * 1000);
 }
 
 // ---- Start Server ----
