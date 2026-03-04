@@ -1,0 +1,115 @@
+// Admin panel client-side JavaScript
+(function () {
+    const $ = (sel) => document.querySelector(sel);
+    let socket = null;
+    let password = '';
+
+    // --- Login ---
+    $('#loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        password = $('#passwordInput').value;
+
+        const res = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+        });
+
+        if (res.ok) {
+            $('#loginScreen').style.display = 'none';
+            $('#dashboard').style.display = 'block';
+            initSocket();
+            loadCustomers();
+        } else {
+            $('#loginError').style.display = 'block';
+        }
+    });
+
+    // --- Socket.io ---
+    function initSocket() {
+        socket = io({ auth: { password } });
+
+        socket.on('qr', (dataUrl) => {
+            $('#qrImage').src = dataUrl;
+            $('#qrImage').style.display = 'block';
+            $('#qrStatus').style.display = 'none';
+            $('#qrSection').style.display = 'flex';
+            $('#statsSection').style.display = 'none';
+            $('#tableSection').style.display = 'none';
+            updateStatus(false);
+        });
+
+        socket.on('connected', () => {
+            $('#qrSection').style.display = 'none';
+            $('#statsSection').style.display = 'grid';
+            $('#tableSection').style.display = 'block';
+            updateStatus(true);
+            loadCustomers();
+        });
+
+        socket.on('disconnected', () => {
+            updateStatus(false);
+        });
+
+        socket.on('stats', (data) => {
+            $('#messageCount').textContent = data.messagesProcessed || 0;
+        });
+
+        socket.on('new_customer', () => {
+            loadCustomers();
+        });
+    }
+
+    function updateStatus(online) {
+        const badge = $('#statusBadge');
+        if (online) {
+            badge.className = 'badge badge-online';
+            badge.textContent = '● Bağlı';
+        } else {
+            badge.className = 'badge badge-offline';
+            badge.textContent = '● Bağlı Değil';
+        }
+    }
+
+    // --- Load customers from API ---
+    async function loadCustomers() {
+        try {
+            const res = await fetch('/api/customers', {
+                headers: { 'x-password': password },
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+
+            $('#totalCount').textContent = data.total || 0;
+
+            // Count today's and pending
+            const today = new Date();
+            const todayStr = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
+            let todayN = 0;
+            let pendingN = 0;
+
+            const tbody = $('#customersBody');
+            tbody.innerHTML = '';
+
+            (data.recent || []).forEach((c) => {
+                if (c.tarih && c.tarih.startsWith(todayStr)) todayN++;
+                if (c.durum && c.durum.includes('Bekliyor')) pendingN++;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td>${c.tarih}</td>
+          <td>${c.isim}</td>
+          <td>${c.telefon}</td>
+          <td>${c.tv_boyutu}</td>
+          <td>${c.montaj_tipi}</td>
+          <td>${c.durum}</td>`;
+                tbody.appendChild(tr);
+            });
+
+            $('#todayCount').textContent = todayN;
+            $('#pendingCount').textContent = pendingN;
+        } catch (err) {
+            console.error('Load customers error:', err);
+        }
+    }
+})();

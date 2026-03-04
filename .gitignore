@@ -1,0 +1,16 @@
+# Environment
+.env
+
+# Node
+node_modules/
+
+# Baileys auth (stored in Redis, not needed locally)
+auth_info_baileys/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

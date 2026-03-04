@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TV Montaj Bot — Yönetim Paneli</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-icon">🔒</div>
+      <h1>TV Montaj Bot</h1>
+      <p>Yönetim paneline giriş yapın</p>
+      <form id="loginForm">
+        <input type="password" id="passwordInput" placeholder="Şifre" autocomplete="current-password" required />
+        <button type="submit">Giriş Yap</button>
+      </form>
+      <p id="loginError" class="error" style="display:none">Şifre hatalı!</p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="dashboard" style="display:none">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1>📺 TV Montaj Bot</h1>
+      </div>
+      <div class="header-right">
+        <span id="statusBadge" class="badge badge-offline">● Bağlantı Bekleniyor</span>
+      </div>
+    </header>
+
+    <!-- QR Section -->
+    <div id="qrSection" class="qr-section">
+      <div class="qr-card">
+        <h2>WhatsApp Bağlantısı</h2>
+        <div id="qrContainer" class="qr-container">
+          <img id="qrImage" src="" alt="QR Code" style="display:none" />
+          <p id="qrStatus" class="qr-status">QR kod bekleniyor...</p>
+        </div>
+        <p class="qr-instructions">
+          1. Telefonunuzdaki WhatsApp'ı açın<br/>
+          2. <strong>Ayarlar → Bağlı Cihazlar → Cihaz Bağla</strong><br/>
+          3. Yukarıdaki QR kodu tarayın
+        </p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="statsSection" class="stats-section" style="display:none">
+      <div class="stat-card">
+        <div class="stat-icon">📋</div>
+        <div class="stat-value" id="todayCount">0</div>
+        <div class="stat-label">Bugünkü Talepler</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value" id="totalCount">0</div>
+        <div class="stat-label">Toplam Müşteri</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-value" id="pendingCount">0</div>
+        <div class="stat-label">Bekleyen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💬</div>
+        <div class="stat-value" id="messageCount">0</div>
+        <div class="stat-label">Bugün İşlenen Mesaj</div>
+      </div>
+    </div>
+
+    <!-- Customers Table -->
+    <div id="tableSection" class="table-section" style="display:none">
+      <h2>Son Talepler</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tarih</th>
+              <th>İsim Soyisim</th>
+              <th>Telefon</th>
+              <th>TV Boyutu</th>
+              <th>Montaj Tipi</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody id="customersBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
