@@ -128,6 +128,8 @@ async function startBot() {
 
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const reason = DisconnectReason;
+            const errorMsg = lastDisconnect?.error?.message || String(lastDisconnect?.error);
+            console.log(`[Bot] ⚠️ Disconnected due to: ${errorMsg} (Status: ${statusCode})`);
 
             if (statusCode === reason.loggedOut) {
                 console.log('[Bot] ❌ Logged out — clearing session');
