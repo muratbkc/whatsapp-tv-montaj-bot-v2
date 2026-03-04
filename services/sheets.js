@@ -28,14 +28,15 @@ async function appendCustomer(data) {
         await doc.loadInfo();
         const sheet = doc.sheetsByIndex[0];
 
+        // Use the exact header names from the spreadsheet
         await sheet.addRow({
-            Tarih: getTRDate(),
-            'İsim Soyisim': data.name,
-            Telefon: data.phone,
-            Adres: data.address,
-            'TV Boyutu': data.tv_size,
-            'Montaj Tipi': data.mount_type,
-            Durum: '⏳ Bekliyor',
+            TARIH: getTRDate(),
+            ISIM: data.name,
+            TELEFON: data.phone,
+            ADRES: data.address || '',
+            TV_BOYUTU: data.tv_size,
+            MONTAJ_TIPI: data.mount_type,
+            DURUM: 'Bekliyor',
         });
 
         console.log(`[Sheets] Customer added: ${data.name}`);
@@ -63,13 +64,13 @@ async function getRecentCustomers(limit = 20) {
 
         // Return the last N rows, newest first
         const recent = rows.slice(-limit).reverse().map((row) => ({
-            tarih: row.get('Tarih') || '',
-            isim: row.get('İsim Soyisim') || '',
-            telefon: row.get('Telefon') || '',
-            adres: row.get('Adres') || '',
-            tv_boyutu: row.get('TV Boyutu') || '',
-            montaj_tipi: row.get('Montaj Tipi') || '',
-            durum: row.get('Durum') || '',
+            tarih: row.get('TARIH') || '',
+            isim: row.get('ISIM') || '',
+            telefon: row.get('TELEFON') || '',
+            adres: row.get('ADRES') || '',
+            tv_boyutu: row.get('TV_BOYUTU') || '',
+            montaj_tipi: row.get('MONTAJ_TIPI') || '',
+            durum: row.get('DURUM') || '',
         }));
 
         return { total: rows.length, recent };

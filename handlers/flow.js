@@ -21,30 +21,49 @@ async function handleMessage(sendMsg, phone, message) {
         return;
     }
 
+    // --- Step 2: Get state ---
+    const state = await getState(phone);
+
+    // --- Step 2.5: Completed cooldown ---
+    // If user just completed a request and writes again, don't restart flow immediately
+    if (state && state.step === 'COMPLETED') {
+        // If user says something after completion, check for FAQ
+        if (faqResponse) {
+            await sendMsg(phone, faqResponse);
+            return;
+        }
+        // Otherwise send a friendly "already done" message and reset
+        await sendMsg(phone, '✅ Talebiniz zaten alınmıştır. Yeni bir talep oluşturmak isterseniz "yeni talep" yazabilirsiniz.');
+        return;
+    }
+
+    // --- Step 3: FAQ response (only if in a flow or new user) ---
     if (faqResponse) {
         await sendMsg(phone, faqResponse);
         // Re-ask current step question if user is in a flow
-        const state = await getState(phone);
-        if (!state) {
-            await setState(phone, { step: 'ASK_NAME' });
-            await sendMsg(phone, messages.WELCOME);
-        } else {
+        if (state) {
             await resendStepQuestion(sendMsg, phone, state);
         }
         return;
     }
 
-    // --- Step 2: Get state ---
-    const state = await getState(phone);
+    // --- Step 4: Check for "new request" trigger ---
+    const lower = message.toLowerCase().trim();
+    if (state && state.step === 'COMPLETED' || lower.includes('yeni talep') || lower.includes('yeni montaj')) {
+        // Start fresh flow
+        await setState(phone, { step: 'ASK_NAME' });
+        await sendMsg(phone, messages.WELCOME);
+        return;
+    }
 
-    // --- Step 3: New user ---
+    // --- Step 5: New user ---
     if (!state) {
         await setState(phone, { step: 'ASK_NAME' });
         await sendMsg(phone, messages.WELCOME);
         return;
     }
 
-    // --- Step 4: Process answer based on step ---
+    // --- Step 6: Process answer based on step ---
     const { step } = state;
 
     if (step === 'ASK_NAME') {
@@ -78,10 +97,11 @@ async function handleMessage(sendMsg, phone, message) {
         await notifyOwner(sendMsg, data);
         // Send confirmation to customer
         await sendMsg(phone, messages.CONFIRMATION(data));
-        // Clear state
-        await deleteState(phone);
+        // Set state to COMPLETED (not delete — prevents immediate restart)
+        await setState(phone, { step: 'COMPLETED' });
     } else {
         // Unknown step — reset
+        await deleteState(phone);
         await sendMsg(phone, messages.UNKNOWN);
     }
 }
