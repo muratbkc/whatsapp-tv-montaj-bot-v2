@@ -88,6 +88,17 @@ async function sendMessage(phone, text) {
 
 // ---- Start Baileys Connection ----
 async function startBot() {
+    // Clean up old socket to prevent duplicate message handling
+    if (sock) {
+        try {
+            sock.ev.removeAllListeners();
+            sock.end(undefined);
+        } catch {
+            // Ignore cleanup errors
+        }
+        sock = null;
+    }
+
     const { state, saveCreds } = await useRedisAuthState();
 
     // Fetch the latest WhatsApp Web version to avoid 405 protocol mismatch
