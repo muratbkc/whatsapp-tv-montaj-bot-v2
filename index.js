@@ -2,7 +2,7 @@
 // WhatsApp TV Montaj Bot — Baileys + Express + Admin Panel
 // ============================================================
 
-const { default: makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, Browsers } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const express = require('express');
 const http = require('http');
@@ -93,10 +93,10 @@ async function startBot() {
 
     sock = makeWASocket({
         auth: state,
-        // DÜZELTME: Render'daki Status 405 hatasını engellemek için tarayıcı kimliğini Mac OS Safari/Chrome olarak göster.
-        browser: ['Mac OS', 'Chrome', '121.0.6167.160'],
-        // Reduce logging noise
-        logger: require('pino')({ level: 'silent' }),
+        browser: Browsers.ubuntu('Chrome'),
+        connectTimeoutMs: 60000,
+        // warn level to see real errors but not noise
+        logger: require('pino')({ level: 'warn' }),
     });
 
     // ---- Connection Events ----
