@@ -93,7 +93,8 @@ async function startBot() {
 
     sock = makeWASocket({
         auth: state,
-        browser: ['TV Montaj Bot', 'Chrome', '22.0'],
+        // DÜZELTME: Render'daki Status 405 hatasını engellemek için tarayıcı kimliğini Mac OS Safari/Chrome olarak göster.
+        browser: ['Mac OS', 'Chrome', '121.0.6167.160'],
         // Reduce logging noise
         logger: require('pino')({ level: 'silent' }),
     });
