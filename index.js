@@ -161,6 +161,14 @@ async function startBot() {
                 await clearAuthState();
                 reconnectAttempts = 0;
                 setTimeout(startBot, 3000);
+            } else if (statusCode === 440) {
+                // 440 = connectionReplaced — another instance took over, DO NOT reconnect
+                console.log('[Bot] ⏸️ Connection replaced by another instance. Waiting 30s before retry...');
+                setTimeout(startBot, 30000);
+            } else if (statusCode === 515) {
+                // 515 = restart required
+                console.log('[Bot] 🔄 Restart required. Waiting 5s...');
+                setTimeout(startBot, 5000);
             } else {
                 reconnectAttempts++;
                 if (reconnectAttempts <= MAX_RECONNECT) {
@@ -226,6 +234,14 @@ function startSelfPing() {
         }
     }, 14 * 60 * 1000);
 }
+
+// ---- Crash Prevention ----
+process.on('uncaughtException', (err) => {
+    console.error('[Process] Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (err) => {
+    console.error('[Process] Unhandled Rejection:', err?.message || err);
+});
 
 // ---- Start Server ----
 server.listen(config.PORT, () => {
