@@ -213,9 +213,12 @@
         const conf = await apiGet('/api/settings/confirmation');
         $('#confirmationMsg').value = conf.message;
 
-        // Owner phone
+        // Owner phone — strip leading '90' since input only shows the 10-digit part
         const op = await apiGet('/api/settings/owner-phone');
-        if ($('#ownerPhone')) $('#ownerPhone').value = op.phone || '';
+        if ($('#ownerPhone')) {
+            const raw = op.phone || '';
+            $('#ownerPhone').value = raw.startsWith('90') ? raw.slice(2) : raw;
+        }
 
         // Flow steps
         currentSteps = await apiGet('/api/settings/flow-steps');
@@ -223,9 +226,16 @@
     }
 
     window.saveOwnerPhone = async function () {
-        const phone = $('#ownerPhone').value.trim();
-        if (!phone) { showToast('Numara boş olamaz!'); return; }
-        await apiPost('/api/settings/owner-phone', { phone });
+        const errEl = $('#ownerPhoneError');
+        const raw = ($('#ownerPhone').value || '').replace(/\D/g, '');
+        // Must be exactly 10 digits and start with 5 (Turkish mobile)
+        if (raw.length !== 10 || !raw.startsWith('5')) {
+            errEl.style.display = 'block';
+            return;
+        }
+        errEl.style.display = 'none';
+        const fullPhone = '90' + raw; // store as 905XXXXXXXXX
+        await apiPost('/api/settings/owner-phone', { phone: fullPhone });
         showToast('Numara kaydedildi ✅');
     };
 
