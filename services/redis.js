@@ -86,6 +86,34 @@ async function redisSetNX(key, value, ttl) {
     }
 }
 
+// Delete keys matching a pattern via SCAN
+async function redisDeletePattern(pattern) {
+    try {
+        let cursor = '0';
+        let deletedCount = 0;
+        do {
+            const data = await redisRequest(`/scan/${cursor}/match/${pattern}/count/100`, 'GET');
+            if (!data || !data.result) break;
+
+            cursor = data.result[0];
+            const keys = data.result[1];
+
+            if (keys && keys.length > 0) {
+                // Delete one by one to avoid URL length limits with REST
+                for (const k of keys) {
+                    await redisDel(k);
+                    deletedCount++;
+                }
+            }
+        } while (cursor !== '0');
+        console.log(`[Redis] Deleted ${deletedCount} keys matching ${pattern}`);
+        return deletedCount;
+    } catch (err) {
+        console.error(`[Redis] DEL PATTERN ${pattern}:`, err.message);
+        return 0;
+    }
+}
+
 module.exports = {
     getState,
     setState,
@@ -94,4 +122,5 @@ module.exports = {
     redisSet,
     redisSetNX,
     redisDel,
+    redisDeletePattern,
 };

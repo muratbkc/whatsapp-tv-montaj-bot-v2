@@ -71,8 +71,9 @@ async function useRedisAuthState() {
  * Clear all auth data from Redis (used when logged out).
  */
 async function clearAuthState() {
-    await redisDel(`${AUTH_KEY_PREFIX}creds`);
-    console.log('[Auth] Session cleared from Redis');
+    const { redisDeletePattern } = require('../services/redis');
+    const deletedCount = await redisDeletePattern(`${AUTH_KEY_PREFIX}*`);
+    console.log(`[Auth] Session cleared from Redis. Deleted ${deletedCount} auth keys.`);
 }
 
 module.exports = { useRedisAuthState, clearAuthState };
