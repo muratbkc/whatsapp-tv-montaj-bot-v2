@@ -213,10 +213,22 @@
         const conf = await apiGet('/api/settings/confirmation');
         $('#confirmationMsg').value = conf.message;
 
+        // Owner phone
+        const op = await apiGet('/api/settings/owner-phone');
+        if ($('#ownerPhone')) $('#ownerPhone').value = op.phone || '';
+
         // Flow steps
         currentSteps = await apiGet('/api/settings/flow-steps');
         renderSteps();
     }
+
+    window.saveOwnerPhone = async function () {
+        const phone = $('#ownerPhone').value.trim();
+        if (!phone) { showToast('Numara boş olamaz!'); return; }
+        await apiPost('/api/settings/owner-phone', { phone });
+        showToast('Numara kaydedildi ✅');
+    };
+
 
     window.updateWorkingHours = async function () {
         await apiPost('/api/settings/working-hours', {

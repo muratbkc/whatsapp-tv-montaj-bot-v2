@@ -8,6 +8,7 @@
  */
 
 const { redisGet, redisSet } = require('./redis');
+const config = require('../config');
 
 // ---- In-memory cache (60 seconds TTL) ----
 const cache = {};
@@ -157,6 +158,26 @@ function invalidateCache() {
     Object.keys(cache).forEach((k) => delete cache[k]);
 }
 
+// ---- Owner Phone ----
+const OWNER_PHONE_KEY = 'settings:owner_phone';
+
+async function getOwnerPhone() {
+    const cached = getCached(OWNER_PHONE_KEY);
+    if (cached) return cached;
+    const raw = await redisGet(OWNER_PHONE_KEY);
+    // Fall back to .env value if Redis has nothing yet
+    const value = raw || config.OWNER_PHONE || '';
+    setCache(OWNER_PHONE_KEY, value);
+    return value;
+}
+
+async function saveOwnerPhone(phone) {
+    // Strip non-digits and ensure it starts with country code
+    const clean = phone.replace(/\D/g, '');
+    await redisSet(OWNER_PHONE_KEY, clean);
+    setCache(OWNER_PHONE_KEY, clean);
+}
+
 module.exports = {
     getWorkingHours,
     saveWorkingHours,
@@ -166,6 +187,8 @@ module.exports = {
     saveFlowSteps,
     getConfirmationMessage,
     saveConfirmationMessage,
+    getOwnerPhone,
+    saveOwnerPhone,
     invalidateCache,
     DEFAULT_FLOW_STEPS,
     DEFAULT_WORKING_HOURS,

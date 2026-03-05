@@ -1,5 +1,5 @@
 // Business owner notification module
-const { OWNER_PHONE } = require('../config');
+const { getOwnerPhone } = require('../services/settings');
 
 function getTRDate() {
     const now = new Date();
@@ -14,23 +14,33 @@ function getTRDate() {
 
 /**
  * Send a formatted notification to the business owner.
- * @param {Function} sendMsg - The sendMessage function from index.js
- * @param {Object} data - Customer data
+ * Owner phone is read from Redis (settable from admin panel),
+ * falling back to OWNER_PHONE env var.
  */
 async function notifyOwner(sendMsg, data) {
+    const ownerPhone = await getOwnerPhone();
+    if (!ownerPhone) {
+        console.warn('[Notifier] No owner phone configured, skipping notification.');
+        return;
+    }
+
+    // Build summary from dynamic answers
+    const summaryLines = Object.entries(data)
+        .filter(([k]) => !['phone'].includes(k))
+        .map(([, v]) => v)
+        .filter(Boolean);
+
     const text =
         '🔔 YENİ MONTAJ TALEBİ!\n' +
         '━━━━━━━━━━━━━━━━━━━━━\n' +
-        `👤 ${data.name}\n` +
         `📞 ${data.phone}\n` +
-        `📍 ${data.address}\n` +
-        `📺 ${data.tv_size} | ${data.mount_type}\n` +
+        summaryLines.map((v) => `• ${v}`).join('\n') + '\n' +
         `🕐 ${getTRDate()}\n` +
         '━━━━━━━━━━━━━━━━━━━━━';
 
     try {
-        await sendMsg(OWNER_PHONE, text);
-        console.log(`[Notifier] Owner notified about ${data.name}`);
+        await sendMsg(ownerPhone, text);
+        console.log(`[Notifier] Owner notified: ${ownerPhone}`);
     } catch (err) {
         console.error('[Notifier] Error:', err.message);
     }
