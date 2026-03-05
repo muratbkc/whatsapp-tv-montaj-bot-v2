@@ -1,17 +1,24 @@
-// Admin panel client-side JavaScript
+﻿// Admin panel client-side JavaScript
 (function () {
     const $ = (sel) => document.querySelector(sel);
     let socket = null;
     let password = '';
     let botPaused = false;
-    let currentSteps = [];
+    window.currentSteps = [];
+    const STATUS_PENDING = '\u23F3 Bekliyor';
+    const STATUS_COMPLETED = '\u2705 Tamamland\u0131';
+    const STATUS_CANCELLED = '\u274C \u0130ptal';
 
     // --- Tab navigation ---
     window.showTab = function (tab) {
         document.querySelectorAll('.tab-content').forEach((el) => (el.style.display = 'none'));
         document.querySelectorAll('.tab-btn').forEach((el) => el.classList.remove('active'));
-        $(`#tab-${tab}`).style.display = 'block';
-        event.target.classList.add('active');
+
+        const target = $(`#tab-${tab}`);
+        if (target) target.style.display = 'block';
+
+        const btn = document.querySelector(`.tab-btn[onclick="showTab('${tab}')"]`);
+        if (btn) btn.classList.add('active');
     };
 
     // --- Login ---
@@ -28,9 +35,10 @@
         if (res.ok) {
             $('#loginScreen').style.display = 'none';
             $('#dashboard').style.display = 'block';
+            $('#resetSessionBtn').style.display = 'inline-flex';
             initSocket();
-            loadCustomers();
-            loadSettings();
+            await loadCustomers();
+            await loadSettings();
             setInterval(loadCustomers, 30_000);
         } else {
             $('#loginError').style.display = 'block';
@@ -56,12 +64,14 @@
             $('#statsSection').style.display = 'grid';
             $('#tableSection').style.display = 'block';
             $('#botControlBtn').style.display = 'inline-flex';
+            $('#resetSessionBtn').style.display = 'inline-flex';
             updateStatus(true);
             loadCustomers();
         });
 
         socket.on('disconnected', () => {
             $('#botControlBtn').style.display = 'none';
+            $('#resetSessionBtn').style.display = 'inline-flex';
             updateStatus(false);
         });
 
@@ -82,7 +92,7 @@
     function updateStatus(online) {
         const badge = $('#statusBadge');
         badge.className = online ? 'badge badge-online' : 'badge badge-offline';
-        badge.textContent = online ? '● Bağlı' : '● Bağlı Değil';
+        badge.textContent = online ? '● Bagli' : '● Bagli Degil';
     }
 
     // --- Bot control button ---
@@ -90,7 +100,7 @@
         const btn = $('#botControlBtn');
         if (!btn) return;
         if (botPaused) {
-            btn.textContent = '▶ Botu Başlat';
+            btn.textContent = '▶ Botu Baslat';
             btn.className = 'btn-control btn-start';
         } else {
             btn.textContent = '⏸ Botu Durdur';
@@ -116,6 +126,38 @@
         }
     };
 
+    window.resetWhatsappSession = async function () {
+        const confirmed = window.confirm('Mevcut WhatsApp oturumu kapatilacak ve yeni QR olusturulacak. Devam edilsin mi?');
+        if (!confirmed) return;
+
+        const btn = $('#resetSessionBtn');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/bot/reset-session', {
+                method: 'POST',
+                headers: { 'x-password': password },
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.error || 'Hesap degistirme islemi basarisiz');
+            }
+
+            $('#qrImage').style.display = 'none';
+            $('#qrStatus').style.display = 'block';
+            $('#qrStatus').textContent = 'Yeni QR olusturuluyor...';
+            $('#qrSection').style.display = 'flex';
+            $('#statsSection').style.display = 'none';
+            $('#tableSection').style.display = 'none';
+
+            showToast('Oturum sifirlandi. Yeni QR kodu birazdan gelecek.');
+        } catch (err) {
+            showToast(`Hesap degistirme hatasi: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
     // --- Load customers ---
     async function loadCustomers() {
         try {
@@ -125,13 +167,15 @@
 
             const today = new Date();
             const todayStr = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
-            let todayN = 0, pendingN = 0;
+            let todayN = 0;
+            let pendingN = 0;
 
             // Build dynamic header
             const thead = $('#tableHead');
             if (thead && data.headers) {
-                thead.innerHTML = ['Tarih', 'Telefon', ...data.headers.filter(h => !['TARIH', 'TELEFON', 'DURUM'].includes(h)).map(h => h), 'Durum']
-                    .map(h => `<th>${h}</th>`).join('');
+                thead.innerHTML = ['Tarih', 'Telefon', ...data.headers.filter((h) => !['TARIH', 'TELEFON', 'DURUM'].includes(h)), 'Durum']
+                    .map((h) => `<th>${h}</th>`)
+                    .join('');
             }
 
             const tbody = $('#customersBody');
@@ -142,13 +186,18 @@
                 if (c.durum && c.durum.includes('Bekliyor')) pendingN++;
 
                 const dynamicCols = data.headers
-                    ? data.headers.filter(h => !['TARIH', 'TELEFON', 'DURUM'].includes(h)).map(h => `<td>${c.columns?.[h] || '-'}</td>`).join('')
+                    ? data.headers
+                        .filter((h) => !['TARIH', 'TELEFON', 'DURUM'].includes(h))
+                        .map((h) => `<td>${c.columns?.[h] || '-'}</td>`)
+                        .join('')
                     : '';
 
-                const statusClass = c.durum.includes('Tamamlandı') ? 'status-completed' : c.durum.includes('İptal') ? 'status-cancelled' : 'status-pending';
+                const isCompletedStatus = c.durum.includes('Tamamlandi') || c.durum.includes('Tamamland\u0131');
+                const isCancelledStatus = c.durum.includes('Iptal') || c.durum.includes('\u0130ptal');
+                const statusClass = isCompletedStatus ? 'status-completed' : isCancelledStatus ? 'status-cancelled' : 'status-pending';
                 const isBekliyor = c.durum.includes('Bekliyor') ? 'selected' : '';
-                const isTamamlandi = c.durum.includes('Tamamlandı') ? 'selected' : '';
-                const isIptal = c.durum.includes('İptal') ? 'selected' : '';
+                const isTamamlandi = isCompletedStatus ? 'selected' : '';
+                const isIptal = isCancelledStatus ? 'selected' : '';
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -157,9 +206,9 @@
                   ${dynamicCols}
                   <td>
                     <select onchange="changeStatus('${c.rowNumber}', this.value)" class="status-select ${statusClass}">
-                      <option value="⏳ Bekliyor" ${isBekliyor}>⏳ Bekliyor</option>
-                      <option value="✅ Tamamlandı" ${isTamamlandi}>✅ Tamamlandı</option>
-                      <option value="❌ İptal" ${isIptal}>❌ İptal</option>
+                      <option value="${STATUS_PENDING}" ${isBekliyor}>${STATUS_PENDING}</option>
+                      <option value="${STATUS_COMPLETED}" ${isTamamlandi}>${STATUS_COMPLETED}</option>
+                      <option value="${STATUS_CANCELLED}" ${isIptal}>${STATUS_CANCELLED}</option>
                     </select>
                   </td>`;
                 tbody.appendChild(tr);
@@ -178,9 +227,9 @@
             const res = await fetch('/api/customers/status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-password': password },
-                body: JSON.stringify({ rowNumber: parseInt(rowNumber), status }),
+                body: JSON.stringify({ rowNumber: parseInt(rowNumber, 10), status }),
             });
-            if (!res.ok) alert('Durum güncellenirken bir hata oluştu');
+            if (!res.ok) alert('Durum guncellenirken bir hata olustu');
         } catch (err) {
             console.error('Change status error:', err);
         }
@@ -191,75 +240,115 @@
     // ============================================================
     async function apiGet(path) {
         const r = await fetch(path, { headers: { 'x-password': password } });
-        return r.json();
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'API hatasi');
+        return data;
     }
+
     async function apiPost(path, body) {
         const r = await fetch(path, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-password': password },
             body: JSON.stringify(body),
         });
-        return r.json();
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'API hatasi');
+        return data;
     }
 
     async function loadSettings() {
-        // Working hours
-        const wh = await apiGet('/api/settings/working-hours');
-        $('#whEnabled').checked = wh.enabled;
-        $('#whStart').value = wh.start;
-        $('#whEnd').value = wh.end;
-        $('#whMessage').value = wh.offMessage;
+        try {
+            // Working hours
+            const wh = await apiGet('/api/settings/working-hours');
+            $('#whEnabled').checked = !!wh.enabled;
+            $('#whStart').value = wh.start || '09:00';
+            $('#whEnd').value = wh.end || '18:00';
+            $('#whMessage').value = wh.offMessage || '';
 
-        // Confirmation
-        const conf = await apiGet('/api/settings/confirmation');
-        $('#confirmationMsg').value = conf.message;
+            // Google Sheets config
+            const sheets = await apiGet('/api/settings/sheets-config');
+            $('#sheetsIdInput').value = sheets.sheetsId || '';
+            $('#googleCredsJsonInput').value = sheets.googleCredsJson || '{}';
 
-        // Flow steps
-        currentSteps = await apiGet('/api/settings/flow-steps');
-        renderSteps();
+            // Confirmation
+            const conf = await apiGet('/api/settings/confirmation');
+            $('#confirmationMsg').value = conf.message || '';
+
+            // Flow steps
+            window.currentSteps = await apiGet('/api/settings/flow-steps');
+            renderSteps();
+        } catch (err) {
+            showToast(`Ayarlar yuklenemedi: ${err.message}`);
+        }
     }
 
-
-
     window.updateWorkingHours = async function () {
-        await apiPost('/api/settings/working-hours', {
-            enabled: $('#whEnabled').checked,
-            start: $('#whStart').value,
-            end: $('#whEnd').value,
-            offMessage: $('#whMessage').value,
-        });
+        try {
+            await apiPost('/api/settings/working-hours', {
+                enabled: $('#whEnabled').checked,
+                start: $('#whStart').value,
+                end: $('#whEnd').value,
+                offMessage: $('#whMessage').value,
+            });
+        } catch (err) {
+            showToast(`Calisma saati kaydedilemedi: ${err.message}`);
+        }
+    };
+
+    window.saveGoogleSheetsConfig = async function () {
+        const sheetsId = $('#sheetsIdInput').value.trim();
+        const googleCredsJson = $('#googleCredsJsonInput').value.trim();
+
+        try {
+            JSON.parse(googleCredsJson || '{}');
+        } catch {
+            showToast('GOOGLE_CREDS_JSON gecerli bir JSON olmali');
+            return;
+        }
+
+        try {
+            await apiPost('/api/settings/sheets-config', { sheetsId, googleCredsJson });
+            showToast('Google Sheets ayarlari kaydedildi ✅');
+        } catch (err) {
+            showToast(`Google Sheets kaydedilemedi: ${err.message}`);
+        }
     };
 
     window.saveConfirmation = async function () {
-        await apiPost('/api/settings/confirmation', { message: $('#confirmationMsg').value });
-        showToast('Onay mesajı kaydedildi ✅');
+        try {
+            await apiPost('/api/settings/confirmation', { message: $('#confirmationMsg').value });
+            showToast('Onay mesaji kaydedildi ✅');
+        } catch (err) {
+            showToast(`Onay mesaji kaydedilemedi: ${err.message}`);
+        }
     };
 
     // --- Steps ---
     function renderSteps() {
         const list = $('#stepsList');
         list.innerHTML = '';
-        currentSteps.forEach((step, i) => {
+
+        window.currentSteps.forEach((step, i) => {
             const div = document.createElement('div');
             div.className = 'step-card';
             div.innerHTML = `
               <div class="step-header">
                 <div class="step-drag-handle">⠿</div>
-                <input class="step-label-input" value="${step.label}" placeholder="Adım adı"
-                  onchange="currentSteps[${i}].label = this.value" />
+                <input class="step-label-input" value="${step.label || ''}" placeholder="Adim adi"
+                  onchange="window.currentSteps[${i}].label = this.value" />
                 <label class="toggle-switch small">
                   <input type="checkbox" ${step.isActive ? 'checked' : ''}
-                    onchange="currentSteps[${i}].isActive = this.checked" />
+                    onchange="window.currentSteps[${i}].isActive = this.checked" />
                   <span class="slider"></span>
                 </label>
-                <button class="btn-delete" onclick="deleteStep(${i})" title="Adımı Sil">🗑</button>
+                <button class="btn-delete" onclick="deleteStep(${i})" title="Adimi Sil">🗑</button>
               </div>
               <div class="step-body">
-                <label class="step-sublabel">Sütun adı (Excel)</label>
-                <input class="step-col-input" value="${step.sheetColumn}" placeholder="ORNEK_SUTUN"
-                  onchange="currentSteps[${i}].sheetColumn = this.value.toUpperCase().replace(/ /g,'_')" />
-                <label class="step-sublabel">Bot mesajı <span class="hint-tag">{{name}} ile isim ekle</span></label>
-                <textarea rows="3" onchange="currentSteps[${i}].message = this.value">${step.message}</textarea>
+                <label class="step-sublabel">Sutun adi (Excel)</label>
+                <input class="step-col-input" value="${step.sheetColumn || ''}" placeholder="ORNEK_SUTUN"
+                  onchange="window.currentSteps[${i}].sheetColumn = this.value.toUpperCase().replace(/ /g,'_')" />
+                <label class="step-sublabel">Bot mesaji <span class="hint-tag">{{name}} ile isim ekle</span></label>
+                <textarea rows="3" onchange="window.currentSteps[${i}].message = this.value">${step.message || ''}</textarea>
               </div>`;
             list.appendChild(div);
         });
@@ -267,29 +356,38 @@
 
     window.addStep = function () {
         const id = 'CUSTOM_' + Date.now();
-        currentSteps.push({
+        window.currentSteps.push({
             id,
-            label: 'Yeni Adım',
+            label: 'Yeni Adim',
             redisKey: id.toLowerCase(),
             sheetColumn: 'YENI_SUTUN',
             isActive: true,
-            message: 'Sorunuzu buraya yazın.',
+            message: 'Sorunuzu buraya yazin.',
         });
         renderSteps();
     };
 
     window.deleteStep = function (i) {
-        if (currentSteps.length <= 1) { showToast('En az 1 adım olmalı!'); return; }
-        currentSteps.splice(i, 1);
+        if (window.currentSteps.length <= 1) {
+            showToast('En az 1 adim olmali!');
+            return;
+        }
+        window.currentSteps.splice(i, 1);
         renderSteps();
     };
 
     window.saveSteps = async function () {
         const btn = document.querySelector('#tab-ayarlar .btn-save[onclick="saveSteps()"]');
         if (btn) btn.disabled = true;
-        await apiPost('/api/settings/flow-steps', { steps: currentSteps });
-        showToast('Adımlar kaydedildi ✅');
-        if (btn) btn.disabled = false;
+
+        try {
+            await apiPost('/api/settings/flow-steps', { steps: window.currentSteps });
+            showToast('Adimlar kaydedildi ✅');
+        } catch (err) {
+            showToast(`Adimlar kaydedilemedi: ${err.message}`);
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     };
 
     // --- Toast notification ---
@@ -299,6 +397,9 @@
         t.textContent = msg;
         document.body.appendChild(t);
         setTimeout(() => t.classList.add('show'), 10);
-        setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2500);
+        setTimeout(() => {
+            t.classList.remove('show');
+            setTimeout(() => t.remove(), 300);
+        }, 2500);
     }
 })();

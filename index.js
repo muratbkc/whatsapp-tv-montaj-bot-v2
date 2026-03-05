@@ -17,6 +17,7 @@ const {
     getWorkingHours, saveWorkingHours,
     getFlowSteps, saveFlowSteps,
     getConfirmationMessage, saveConfirmationMessage,
+    getSheetsConfig, saveSheetsConfig,
     invalidateCache, DEFAULT_FLOW_STEPS, DEFAULT_WORKING_HOURS,
 } = require('./services/settings');
 
@@ -34,6 +35,7 @@ let isConnected = false;
 let isBotPaused = false;
 let messagesProcessed = 0;
 let reconnectAttempts = 0;
+let isSessionResetting = false;
 const MAX_RECONNECT = 10;
 
 // ---- API Endpoints ----
@@ -114,6 +116,63 @@ app.post('/api/bot/start', (req, res) => {
     res.json({ ok: true, paused: false });
 });
 
+// Logout current WhatsApp session and force a new QR flow
+app.post('/api/bot/reset-session', async (req, res) => {
+    if (req.headers['x-password'] !== config.PANEL_PASSWORD) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (isSessionResetting) {
+        return res.status(409).json({ error: 'Session reset already in progress' });
+    }
+
+    isSessionResetting = true;
+    try {
+        const currentSock = sock;
+        sock = null;
+        isConnected = false;
+        isBotPaused = false;
+        reconnectAttempts = 0;
+        io.emit('disconnected');
+        io.emit('bot_resumed');
+
+        if (currentSock) {
+            try {
+                currentSock.ev.removeAllListeners();
+            } catch {
+                // Ignore
+            }
+            try {
+                await currentSock.logout();
+                console.log('[Bot] WhatsApp session logged out by admin panel');
+            } catch (err) {
+                console.warn('[Bot] Logout warning:', err.message);
+            }
+            try {
+                currentSock.end(undefined);
+            } catch {
+                // Ignore
+            }
+        }
+
+        await clearAuthState();
+
+        setTimeout(async () => {
+            try {
+                await startBot();
+            } catch (err) {
+                console.error('[Bot] Restart after reset failed:', err.message);
+            } finally {
+                isSessionResetting = false;
+            }
+        }, 1200);
+
+        return res.json({ ok: true });
+    } catch (err) {
+        isSessionResetting = false;
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 // ---- Socket.io Auth Middleware ----
 io.use((socket, next) => {
     if (socket.handshake.auth?.password === config.PANEL_PASSWORD) {
@@ -181,6 +240,25 @@ app.post('/api/settings/confirmation', async (req, res) => {
     if (!checkAuth(req, res)) return;
     await saveConfirmationMessage(req.body.message || '');
     res.json({ ok: true });
+});
+
+// Google Sheets integration
+app.get('/api/settings/sheets-config', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    res.json(await getSheetsConfig());
+});
+app.post('/api/settings/sheets-config', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    try {
+        await saveSheetsConfig({
+            sheetsId: req.body.sheetsId || '',
+            googleCredsJson: req.body.googleCredsJson || '{}',
+        });
+        invalidateCache();
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * settings.js — Bot settings service
  *
  * UPSTASH LIMIT NOTE:
@@ -8,6 +8,7 @@
  */
 
 const { redisGet, redisSet } = require('./redis');
+const config = require('../config');
 
 // ---- In-memory cache (60 seconds TTL) ----
 const cache = {};
@@ -122,6 +123,21 @@ const CONFIRMATION_KEY = 'settings:confirmation_message';
 const DEFAULT_CONFIRMATION =
     `✅ Talebiniz başarıyla alındı! Ekibimiz en kısa sürede sizinle iletişime geçecektir. 🔧`;
 
+// ---- Google Sheets Integration ----
+const SHEETS_CONFIG_KEY = 'settings:sheets_config';
+const DEFAULT_SHEETS_CONFIG = {
+    sheetsId: config.SHEETS_ID || '',
+    googleCredsJson: config.GOOGLE_CREDS_JSON || '{}',
+};
+
+function normalizeSheetsConfig(data = {}) {
+    const sheetsId = typeof data.sheetsId === 'string' ? data.sheetsId.trim() : '';
+    const googleCredsJson = typeof data.googleCredsJson === 'string' && data.googleCredsJson.trim()
+        ? data.googleCredsJson.trim()
+        : '{}';
+    return { sheetsId, googleCredsJson };
+}
+
 async function getFlowSteps() {
     const cached = getCached(FLOW_STEPS_KEY);
     if (cached) return cached;
@@ -152,6 +168,42 @@ async function saveConfirmationMessage(msg) {
     setCache(CONFIRMATION_KEY, msg);
 }
 
+async function getSheetsConfig() {
+    const cached = getCached(SHEETS_CONFIG_KEY);
+    if (cached) return cached;
+
+    const raw = await redisGet(SHEETS_CONFIG_KEY);
+    if (!raw) {
+        const fallback = normalizeSheetsConfig(DEFAULT_SHEETS_CONFIG);
+        setCache(SHEETS_CONFIG_KEY, fallback);
+        return fallback;
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+        const value = normalizeSheetsConfig(parsed);
+        setCache(SHEETS_CONFIG_KEY, value);
+        return value;
+    } catch {
+        const fallback = normalizeSheetsConfig(DEFAULT_SHEETS_CONFIG);
+        setCache(SHEETS_CONFIG_KEY, fallback);
+        return fallback;
+    }
+}
+
+async function saveSheetsConfig(data) {
+    const value = normalizeSheetsConfig(data);
+
+    try {
+        JSON.parse(value.googleCredsJson);
+    } catch {
+        throw new Error('GOOGLE_CREDS_JSON geçerli bir JSON olmalı');
+    }
+
+    await redisSet(SHEETS_CONFIG_KEY, JSON.stringify(value));
+    setCache(SHEETS_CONFIG_KEY, value);
+}
+
 // Invalidate all caches (called after save to force fresh read next time)
 function invalidateCache() {
     Object.keys(cache).forEach((k) => delete cache[k]);
@@ -166,7 +218,10 @@ module.exports = {
     saveFlowSteps,
     getConfirmationMessage,
     saveConfirmationMessage,
+    getSheetsConfig,
+    saveSheetsConfig,
     invalidateCache,
     DEFAULT_FLOW_STEPS,
     DEFAULT_WORKING_HOURS,
+    DEFAULT_SHEETS_CONFIG,
 };

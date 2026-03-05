@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TV Montaj Bot — Yönetim Paneli</title>
+  <title>TV Montaj Bot - Yonetim Paneli</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
@@ -16,12 +16,12 @@
     <div class="login-card">
       <div class="login-icon">🔒</div>
       <h1>TV Montaj Bot</h1>
-      <p>Yönetim paneline giriş yapın</p>
+      <p>Yonetim paneline giris yapin</p>
       <form id="loginForm">
-        <input type="password" id="passwordInput" placeholder="Şifre" autocomplete="current-password" required />
-        <button type="submit">Giriş Yap</button>
+        <input type="password" id="passwordInput" placeholder="Sifre" autocomplete="current-password" required />
+        <button type="submit">Giris Yap</button>
       </form>
-      <p id="loginError" class="error" style="display:none">Şifre hatalı!</p>
+      <p id="loginError" class="error" style="display:none">Sifre hatali!</p>
     </div>
   </div>
 
@@ -33,9 +33,9 @@
         <h1>📺 TV Montaj Bot</h1>
       </div>
       <div class="header-right">
-        <span id="statusBadge" class="badge badge-offline">● Bağlantı Bekleniyor</span>
-        <button id="botControlBtn" class="btn-control btn-stop" onclick="toggleBot()" style="display:none">⏸ Botu
-          Durdur</button>
+        <span id="statusBadge" class="badge badge-offline">● Baglanti Bekleniyor</span>
+        <button id="resetSessionBtn" class="btn-control btn-reset" onclick="resetWhatsappSession()" style="display:none">↻ Hesap Degistir</button>
+        <button id="botControlBtn" class="btn-control btn-stop" onclick="toggleBot()" style="display:none">⏸ Botu Durdur</button>
       </div>
     </header>
 
@@ -50,15 +50,15 @@
       <!-- QR Section -->
       <div id="qrSection" class="qr-section">
         <div class="qr-card">
-          <h2>WhatsApp Bağlantısı</h2>
+          <h2>WhatsApp Baglantisi</h2>
           <div id="qrContainer" class="qr-container">
             <img id="qrImage" src="" alt="QR Code" style="display:none" />
             <p id="qrStatus" class="qr-status">QR kod bekleniyor...</p>
           </div>
           <p class="qr-instructions">
-            1. Telefonunuzdaki WhatsApp'ı açın<br />
-            2. <strong>Ayarlar → Bağlı Cihazlar → Cihaz Bağla</strong><br />
-            3. Yukarıdaki QR kodu tarayın
+            1. Telefonunuzdaki WhatsApp'i acin<br />
+            2. <strong>Ayarlar → Bagli Cihazlar → Cihaz Bagla</strong><br />
+            3. Yukaridaki QR kodu tarayin
           </p>
         </div>
       </div>
@@ -68,7 +68,7 @@
         <div class="stat-card">
           <div class="stat-icon">📋</div>
           <div class="stat-value" id="todayCount">0</div>
-          <div class="stat-label">Bugünkü Talepler</div>
+          <div class="stat-label">Bugunku Talepler</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">⏳</div>
@@ -97,48 +97,59 @@
       <!-- Working Hours Card -->
       <div class="settings-card">
         <div class="settings-card-header">
-          <h3>🕐 Çalışma Saati</h3>
+          <h3>🕐 Calisma Saati</h3>
           <label class="toggle-switch">
             <input type="checkbox" id="whEnabled" onchange="updateWorkingHours()" />
             <span class="slider"></span>
           </label>
         </div>
         <div class="settings-row">
-          <label>Başlangıç</label>
+          <label>Baslangic</label>
           <input type="time" id="whStart" value="09:00" onchange="updateWorkingHours()" />
         </div>
         <div class="settings-row">
-          <label>Bitiş</label>
+          <label>Bitis</label>
           <input type="time" id="whEnd" value="18:00" onchange="updateWorkingHours()" />
         </div>
         <div class="settings-row col">
-          <label>Mesai Dışı Mesajı</label>
-          <textarea id="whMessage" rows="3" onchange="updateWorkingHours()"
-            placeholder="{{START}} ve {{END}} ile saat ekleyebilirsiniz"></textarea>
+          <label>Mesai Disi Mesaji</label>
+          <textarea id="whMessage" rows="3" onchange="updateWorkingHours()" placeholder="{{START}} ve {{END}} ile saat ekleyebilirsiniz"></textarea>
         </div>
-        <p class="settings-hint">Devre dışıyken bot 7/24 yanıt verir. Aktifken belirtilen saatler dışında otomatik yanıt
-          gönderilir.</p>
+        <p class="settings-hint">Devre disiyken bot 7/24 yanit verir. Aktifken belirtilen saatler disinda otomatik yanit gonderilir.</p>
+      </div>
+
+      <!-- Google Sheets Integration Card -->
+      <div class="settings-card">
+        <h3>📊 Google Sheets Entegrasyonu</h3>
+        <p class="settings-hint">Bu alandan farkli bir Google Sheet dosyasina gecis yapabilir ve servis JSON bilgisini guncelleyebilirsiniz.</p>
+        <div class="settings-row col">
+          <label>Google Sheets ID</label>
+          <input id="sheetsIdInput" class="settings-text-input" placeholder="1AbCdEf...." />
+        </div>
+        <div class="settings-row col">
+          <label>GOOGLE_CREDS_JSON</label>
+          <textarea id="googleCredsJsonInput" class="mono" rows="8" placeholder='{"type":"service_account","project_id":"..."}'></textarea>
+        </div>
+        <button class="btn-save" onclick="saveGoogleSheetsConfig()">💾 Entegrasyonu Kaydet</button>
       </div>
 
       <!-- Confirmation Message Card -->
       <div class="settings-card">
-        <h3>✅ Onay Mesajı</h3>
-        <p class="settings-hint">Talep tamamlandığında gönderilir. <code>{{summary}}</code> yazarsanız otomatik özet
-          eklenir.</p>
-        <textarea id="confirmationMsg" rows="5" placeholder="Onay mesajını yazın..."></textarea>
+        <h3>✅ Onay Mesaji</h3>
+        <p class="settings-hint">Talep tamamlandiginda gonderilir. <code>{{summary}}</code> yazarsaniz otomatik ozet eklenir.</p>
+        <textarea id="confirmationMsg" rows="5" placeholder="Onay mesajini yazin..."></textarea>
         <button class="btn-save" onclick="saveConfirmation()">💾 Kaydet</button>
       </div>
 
       <!-- Flow Steps Card -->
       <div class="settings-card">
         <div class="settings-card-header">
-          <h3>💬 Konuşma Adımları</h3>
-          <button class="btn-add" onclick="addStep()">➕ Adım Ekle</button>
+          <h3>💬 Konusma Adimlari</h3>
+          <button class="btn-add" onclick="addStep()">➕ Adim Ekle</button>
         </div>
-        <p class="settings-hint">Adımlar sırayla sorulur. İsim adımı her zaman ilk olmalı (müşteri ismi onay mesajında
-          kullanılır).</p>
+        <p class="settings-hint">Adimlar sirayla sorulur. Isim adimi her zaman ilk olmali (musteri ismi onay mesajinda kullanilir).</p>
         <div id="stepsList"></div>
-        <button class="btn-save" onclick="saveSteps()">💾 Adımları Kaydet</button>
+        <button class="btn-save" onclick="saveSteps()">💾 Adimlari Kaydet</button>
       </div>
 
     </div>

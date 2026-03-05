@@ -1,7 +1,7 @@
-// Google Sheets customer record service — dynamic column support
+﻿// Google Sheets customer record service - dynamic column support
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
-const { SHEETS_ID, GOOGLE_CREDS_JSON } = require('../config');
+const { getSheetsConfig } = require('./settings');
 
 function getTRDate() {
     const now = new Date();
@@ -14,13 +14,41 @@ function getTRDate() {
     return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
 }
 
-function makeAuth() {
-    const creds = JSON.parse(GOOGLE_CREDS_JSON);
+function makeAuth(googleCredsJson) {
+    let creds;
+    try {
+        creds = JSON.parse(googleCredsJson || '{}');
+    } catch {
+        throw new Error('GOOGLE_CREDS_JSON gecerli bir JSON olmali');
+    }
+
+    if (!creds.client_email || !creds.private_key) {
+        throw new Error('Google servis JSON eksik: client_email veya private_key bulunamadi');
+    }
+
     return new JWT({
         email: creds.client_email,
         key: creds.private_key,
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
+}
+
+async function getSheet() {
+    const { sheetsId, googleCredsJson } = await getSheetsConfig();
+
+    if (!sheetsId) {
+        throw new Error('SHEETS_ID ayarlanmamis');
+    }
+
+    const doc = new GoogleSpreadsheet(sheetsId, makeAuth(googleCredsJson));
+    await doc.loadInfo();
+
+    const sheet = doc.sheetsByIndex[0];
+    if (!sheet) {
+        throw new Error('Google Sheets icinde calisacak sayfa bulunamadi');
+    }
+
+    return sheet;
 }
 
 /**
@@ -31,8 +59,9 @@ async function ensureColumns(sheet, requiredColumns) {
     try {
         await sheet.loadHeaderRow();
     } catch {
-        // Fresh sheet with no header row yet — ignore error, setHeaderRow will create it
+        // Fresh sheet with no header row yet - ignore error, setHeaderRow will create it
     }
+
     const existing = sheet.headerValues || [];
     const missing = requiredColumns.filter((col) => !existing.includes(col));
 
@@ -50,22 +79,19 @@ async function ensureColumns(sheet, requiredColumns) {
  */
 async function appendCustomer(data, activeSteps) {
     try {
-        const doc = new GoogleSpreadsheet(SHEETS_ID, makeAuth());
-        await doc.loadInfo();
-        const sheet = doc.sheetsByIndex[0];
+        const sheet = await getSheet();
 
-        // Determine required columns
         const stepColumns = activeSteps.map((s) => s.sheetColumn);
         const requiredColumns = ['TARIH', 'TELEFON', ...stepColumns, 'DURUM'];
 
         await ensureColumns(sheet, requiredColumns);
 
-        // Build row object
         const row = {
             TARIH: getTRDate(),
             TELEFON: data.phone,
             DURUM: '⏳ Bekliyor',
         };
+
         activeSteps.forEach((s) => {
             row[s.sheetColumn] = data.answers[s.redisKey] || '';
         });
@@ -82,9 +108,7 @@ async function appendCustomer(data, activeSteps) {
  */
 async function getRecentCustomers(limit = 20) {
     try {
-        const doc = new GoogleSpreadsheet(SHEETS_ID, makeAuth());
-        await doc.loadInfo();
-        const sheet = doc.sheetsByIndex[0];
+        const sheet = await getSheet();
         const rows = await sheet.getRows();
         const headers = sheet.headerValues || [];
 
@@ -94,14 +118,15 @@ async function getRecentCustomers(limit = 20) {
                 tarih: row.get('TARIH') || '',
                 telefon: row.get('TELEFON') || '',
                 durum: row.get('DURUM') || '',
-                // All dynamic columns
                 columns: {},
             };
+
             headers.forEach((h) => {
                 if (!['TARIH', 'TELEFON', 'DURUM'].includes(h)) {
                     entry.columns[h] = row.get(h) || '';
                 }
             });
+
             return entry;
         });
 
@@ -117,17 +142,17 @@ async function getRecentCustomers(limit = 20) {
  */
 async function updateCustomerStatus(rowNumber, newStatus) {
     try {
-        const doc = new GoogleSpreadsheet(SHEETS_ID, makeAuth());
-        await doc.loadInfo();
-        const sheet = doc.sheetsByIndex[0];
+        const sheet = await getSheet();
         const rows = await sheet.getRows();
         const targetRow = rows.find((r) => r.rowNumber === rowNumber);
-        if (targetRow) {
-            targetRow.set('DURUM', newStatus);
-            await targetRow.save();
-            return true;
+
+        if (!targetRow) {
+            return false;
         }
-        return false;
+
+        targetRow.set('DURUM', newStatus);
+        await targetRow.save();
+        return true;
     } catch (err) {
         console.error('[Sheets] Update status error:', err.message);
         return false;
