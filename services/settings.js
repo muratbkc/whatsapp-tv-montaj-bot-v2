@@ -120,7 +120,7 @@ const DEFAULT_FLOW_STEPS = [
 
 const CONFIRMATION_KEY = 'settings:confirmation_message';
 const DEFAULT_CONFIRMATION =
-    `✅ Talebiniz başarıyla alındı!\n\n━━━━━━━━━━━━━━━━━\n📋 KAYIT ÖZETİ\n━━━━━━━━━━━━━━━━━\n{{summary}}\n━━━━━━━━━━━━━━━━━\n\nEkibimiz en geç 2 saat içinde sizi arayarak randevu belirleyecek. 🔧`;
+    `✅ Talebiniz başarıyla alındı! Ekibimiz en kısa sürede sizinle iletişime geçecektir. 🔧`;
 
 async function getFlowSteps() {
     const cached = getCached(FLOW_STEPS_KEY);
