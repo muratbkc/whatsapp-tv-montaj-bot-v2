@@ -1,6 +1,6 @@
 // Main conversation flow engine — dynamic step system
 const { checkFaq } = require('./faq');
-const { notifyOwner } = require('./notifier');
+
 const { getState, setState, deleteState } = require('../services/redis');
 const { appendCustomer } = require('../services/sheets');
 const {
@@ -132,7 +132,6 @@ async function handleMessage(sendMsg, phone, message) {
         // Prepare data object for sheets using dynamic column names
         const data = { answers, phone };
         await appendCustomer(data, activeSteps);
-        await notifyOwner(sendMsg, { ...answers, phone });
         await sendMsg(phone, confirmationMsg);
         await setState(phone, { step: 'COMPLETED' });
     }
