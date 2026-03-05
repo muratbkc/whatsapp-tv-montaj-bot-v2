@@ -36,7 +36,7 @@ async function appendCustomer(data) {
             ADRES: data.address || '',
             TV_BOYUTU: data.tv_size,
             MONTAJ_TIPI: data.mount_type,
-            DURUM: 'Bekliyor',
+            DURUM: '⏳ Bekliyor',
         });
 
         console.log(`[Sheets] Customer added: ${data.name}`);
