@@ -7,7 +7,7 @@
   <title>TV Montaj Bot - Yonetim Paneli</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/style.css?v=20260305-2" />
 </head>
 
 <body>
@@ -34,10 +34,31 @@
       </div>
       <div class="header-right">
         <span id="statusBadge" class="badge badge-offline">● Baglanti Bekleniyor</span>
-        <button id="resetSessionBtn" class="btn-control btn-reset" onclick="resetWhatsappSession()" style="display:none">↻ Hesap Degistir</button>
-        <button id="botControlBtn" class="btn-control btn-stop" onclick="toggleBot()" style="display:none">⏸ Botu Durdur</button>
+        <button id="resetSessionBtn" class="btn-control btn-reset"
+          onclick="document.getElementById('confirmModal').style.display='flex'" style="display:none">↻ Hesap
+          Degistir</button>
+        <button id="botControlBtn" class="btn-control btn-stop" onclick="toggleBot()" style="display:none">⏸ Botu
+          Durdur</button>
       </div>
     </header>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal"
+      style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+      <div
+        style="background:white; padding:20px; border-radius:8px; max-width:400px; text-align:center; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+        <h3 style="margin-top:0; color:#333;">Hesap Değiştirme Onayı</h3>
+        <p style="color:#666; margin-bottom:20px;">Mevcut WhatsApp hesabından çıkış yapılacak ve yeni QR kodu
+          oluşturulacak. Devam etmek istiyor musunuz?</p>
+        <div style="display:flex; justify-content:center; gap:10px;">
+          <button onclick="document.getElementById('confirmModal').style.display='none'"
+            style="padding:8px 16px; border:none; background:#ccc; color:#333; border-radius:4px; cursor:pointer;">İptal</button>
+          <button onclick="document.getElementById('confirmModal').style.display='none'; resetWhatsappSession();"
+            style="padding:8px 16px; border:none; background:#e74c3c; color:white; border-radius:4px; cursor:pointer;">Evet,
+            Değiştir</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Tabs -->
     <nav class="tabs">
@@ -94,69 +115,27 @@
     <!-- TAB: Ayarlar -->
     <div id="tab-ayarlar" class="tab-content" style="display:none">
 
-      <!-- Working Hours Card -->
-      <div class="settings-card">
-        <div class="settings-card-header">
-          <h3>🕐 Calisma Saati</h3>
-          <label class="toggle-switch">
-            <input type="checkbox" id="whEnabled" onchange="updateWorkingHours()" />
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="settings-row">
-          <label>Baslangic</label>
-          <input type="time" id="whStart" value="09:00" onchange="updateWorkingHours()" />
-        </div>
-        <div class="settings-row">
-          <label>Bitis</label>
-          <input type="time" id="whEnd" value="18:00" onchange="updateWorkingHours()" />
-        </div>
-        <div class="settings-row col">
-          <label>Mesai Disi Mesaji</label>
-          <textarea id="whMessage" rows="3" onchange="updateWorkingHours()" placeholder="{{START}} ve {{END}} ile saat ekleyebilirsiniz"></textarea>
-        </div>
-        <p class="settings-hint">Devre disiyken bot 7/24 yanit verir. Aktifken belirtilen saatler disinda otomatik yanit gonderilir.</p>
-      </div>
-
       <!-- Google Sheets Integration Card -->
       <div class="settings-card">
         <h3>📊 Google Sheets Entegrasyonu</h3>
-        <p class="settings-hint">Bu alandan farkli bir Google Sheet dosyasina gecis yapabilir ve servis JSON bilgisini guncelleyebilirsiniz.</p>
+        <p class="settings-hint">Bu alandan farkli bir Google Sheet dosyasina gecis yapabilir ve servis JSON bilgisini
+          guncelleyebilirsiniz.</p>
         <div class="settings-row col">
           <label>Google Sheets ID</label>
           <input id="sheetsIdInput" class="settings-text-input" placeholder="1AbCdEf...." />
         </div>
         <div class="settings-row col">
           <label>GOOGLE_CREDS_JSON</label>
-          <textarea id="googleCredsJsonInput" class="mono" rows="8" placeholder='{"type":"service_account","project_id":"..."}'></textarea>
+          <textarea id="googleCredsJsonInput" class="mono" rows="8"
+            placeholder='{"type":"service_account","project_id":"..."}'></textarea>
         </div>
         <button class="btn-save" onclick="saveGoogleSheetsConfig()">💾 Entegrasyonu Kaydet</button>
       </div>
-
-      <!-- Confirmation Message Card -->
-      <div class="settings-card">
-        <h3>✅ Onay Mesaji</h3>
-        <p class="settings-hint">Talep tamamlandiginda gonderilir. <code>{{summary}}</code> yazarsaniz otomatik ozet eklenir.</p>
-        <textarea id="confirmationMsg" rows="5" placeholder="Onay mesajini yazin..."></textarea>
-        <button class="btn-save" onclick="saveConfirmation()">💾 Kaydet</button>
-      </div>
-
-      <!-- Flow Steps Card -->
-      <div class="settings-card">
-        <div class="settings-card-header">
-          <h3>💬 Konusma Adimlari</h3>
-          <button class="btn-add" onclick="addStep()">➕ Adim Ekle</button>
-        </div>
-        <p class="settings-hint">Adimlar sirayla sorulur. Isim adimi her zaman ilk olmali (musteri ismi onay mesajinda kullanilir).</p>
-        <div id="stepsList"></div>
-        <button class="btn-save" onclick="saveSteps()">💾 Adimlari Kaydet</button>
-      </div>
-
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=20260305-2"></script>
 </body>
 
 </html>
