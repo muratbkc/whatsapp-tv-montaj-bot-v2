@@ -25,6 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ---- Global State ----
 let sock = null;
 let isConnected = false;
+let isBotPaused = false;
 let messagesProcessed = 0;
 let reconnectAttempts = 0;
 const MAX_RECONNECT = 10;
@@ -82,7 +83,29 @@ app.post('/api/customers/status', async (req, res) => {
 
 // Get bot status
 app.get('/api/status', (req, res) => {
-    res.json({ connected: isConnected, messagesProcessed });
+    res.json({ connected: isConnected, messagesProcessed, paused: isBotPaused });
+});
+
+// Stop the bot (pause — stop responding to messages, keep WA connection alive)
+app.post('/api/bot/stop', (req, res) => {
+    if (req.headers['x-password'] !== config.PANEL_PASSWORD) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    isBotPaused = true;
+    console.log('[Bot] ⏸️ Bot paused by admin panel');
+    io.emit('bot_paused');
+    res.json({ ok: true, paused: true });
+});
+
+// Start / resume the bot
+app.post('/api/bot/start', (req, res) => {
+    if (req.headers['x-password'] !== config.PANEL_PASSWORD) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    isBotPaused = false;
+    console.log('[Bot] ▶️ Bot resumed by admin panel');
+    io.emit('bot_resumed');
+    res.json({ ok: true, paused: false });
 });
 
 // ---- Socket.io Auth Middleware ----
@@ -225,6 +248,8 @@ async function startBot() {
     // ---- Incoming Messages ----
     sock.ev.on('messages.upsert', async ({ messages: msgs, type }) => {
         if (type !== 'notify') return;
+        // If bot is paused by admin, ignore all incoming messages
+        if (isBotPaused) return;
 
         for (const msg of msgs) {
             if (!msg.message) continue;

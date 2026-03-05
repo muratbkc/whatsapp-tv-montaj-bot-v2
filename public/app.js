@@ -45,12 +45,24 @@
             $('#qrSection').style.display = 'none';
             $('#statsSection').style.display = 'grid';
             $('#tableSection').style.display = 'block';
+            $('#botControlBtn').style.display = 'inline-flex';
             updateStatus(true);
             loadCustomers();
         });
 
         socket.on('disconnected', () => {
+            $('#botControlBtn').style.display = 'none';
             updateStatus(false);
+        });
+
+        socket.on('bot_paused', () => {
+            botPaused = true;
+            updateBotControlBtn();
+        });
+
+        socket.on('bot_resumed', () => {
+            botPaused = false;
+            updateBotControlBtn();
         });
 
         socket.on('new_customer', () => {
@@ -68,6 +80,40 @@
             badge.textContent = '● Bağlı Değil';
         }
     }
+
+    let botPaused = false;
+
+    function updateBotControlBtn() {
+        const btn = $('#botControlBtn');
+        if (!btn) return;
+        if (botPaused) {
+            btn.textContent = '▶ Botu Başlat';
+            btn.className = 'btn-control btn-start';
+        } else {
+            btn.textContent = '⏸ Botu Durdur';
+            btn.className = 'btn-control btn-stop';
+        }
+    }
+
+    window.toggleBot = async function () {
+        const endpoint = botPaused ? '/api/bot/start' : '/api/bot/stop';
+        const btn = $('#botControlBtn');
+        btn.disabled = true;
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'x-password': password },
+            });
+            if (res.ok) {
+                botPaused = !botPaused;
+                updateBotControlBtn();
+            }
+        } catch (err) {
+            console.error('Bot control error:', err);
+        } finally {
+            btn.disabled = false;
+        }
+    };
 
     // --- Change Status ---
     window.changeStatus = async function (rowNumber, status) {
