@@ -360,14 +360,45 @@ async function startBot() {
             messagesProcessed++;
             io.emit('stats', { messagesProcessed });
 
-            try {
-                await handleMessage(sendMessage, phone, text);
-                io.emit('new_customer');
-            } catch (err) {
-                console.error(`[Bot] Flow error for ${phone}:`, err.message);
-            }
+            // ---- 3-second message buffer — collect rapid-fire messages per phone ----
+            bufferMessage(phone, text);
         }
     });
+}
+
+// ---- Per-phone Message Buffer ----
+// Collects messages from the same phone within BUFFER_MS and joins them before processing.
+const BUFFER_MS = 3000;
+const messageBuffers = new Map(); // phone → { parts: string[], timer: Timeout }
+
+function bufferMessage(phone, text) {
+    if (messageBuffers.has(phone)) {
+        // Extend existing buffer
+        const buf = messageBuffers.get(phone);
+        buf.parts.push(text);
+        clearTimeout(buf.timer);
+        buf.timer = setTimeout(() => flushBuffer(phone), BUFFER_MS);
+    } else {
+        // Start new buffer for this phone
+        const timer = setTimeout(() => flushBuffer(phone), BUFFER_MS);
+        messageBuffers.set(phone, { parts: [text], timer });
+    }
+}
+
+async function flushBuffer(phone) {
+    const buf = messageBuffers.get(phone);
+    if (!buf) return;
+    messageBuffers.delete(phone);
+
+    const combined = buf.parts.join(' ');
+    console.log(`[Bot] 🔀 Buffer flushed for ${phone}: "${combined.substring(0, 80)}"`);
+
+    try {
+        await handleMessage(sendMessage, phone, combined);
+        io.emit('new_customer');
+    } catch (err) {
+        console.error(`[Bot] Flow error for ${phone}:`, err.message);
+    }
 }
 
 // ---- Self-Ping (Keep Alive for Render.com) ----
