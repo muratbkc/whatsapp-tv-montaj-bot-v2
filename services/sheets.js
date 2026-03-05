@@ -28,7 +28,11 @@ function makeAuth() {
  * Adds any missing columns to the header row automatically.
  */
 async function ensureColumns(sheet, requiredColumns) {
-    // headerValues may be undefined for a fresh sheet
+    try {
+        await sheet.loadHeaderRow();
+    } catch {
+        // Fresh sheet with no header row yet — ignore error, setHeaderRow will create it
+    }
     const existing = sheet.headerValues || [];
     const missing = requiredColumns.filter((col) => !existing.includes(col));
 
