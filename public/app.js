@@ -126,9 +126,6 @@
     };
 
     window.resetWhatsappSession = async function () {
-        const confirmed = window.confirm('Mevcut WhatsApp hesabi cikis yapacak ve yeni QR kodu olusturulacak. Devam etmek istiyor musunuz?');
-        if (!confirmed) return;
-
         const btn = $('#resetSessionBtn');
         btn.disabled = true;
 
