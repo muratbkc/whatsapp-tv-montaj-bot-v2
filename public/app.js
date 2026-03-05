@@ -20,6 +20,8 @@
             $('#dashboard').style.display = 'block';
             initSocket();
             loadCustomers();
+            // Poll every 30 seconds — keeps table in sync even when status changed directly in Excel
+            setInterval(loadCustomers, 30_000);
         } else {
             $('#loginError').style.display = 'block';
         }
