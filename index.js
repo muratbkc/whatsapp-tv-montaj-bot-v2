@@ -71,6 +71,17 @@ io.use((socket, next) => {
     return next(new Error('Unauthorized'));
 });
 
+// ---- Send current state to newly connected socket ----
+io.on('connection', (socket) => {
+    // Immediately inform the new client about current bot status
+    if (isConnected) {
+        socket.emit('connected');
+        socket.emit('stats', { messagesProcessed });
+    } else {
+        socket.emit('disconnected');
+    }
+});
+
 // ---- Send Message Helper ----
 async function sendMessage(phone, text) {
     if (!sock) {
