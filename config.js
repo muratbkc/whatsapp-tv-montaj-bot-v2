@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 module.exports = {
-  OWNER_PHONE: process.env.OWNER_PHONE || '',
   REDIS_URL: process.env.REDIS_URL || '',
   REDIS_TOKEN: process.env.REDIS_TOKEN || '',
   SHEETS_ID: process.env.SHEETS_ID || '',

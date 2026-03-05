@@ -17,7 +17,6 @@ const {
     getWorkingHours, saveWorkingHours,
     getFlowSteps, saveFlowSteps,
     getConfirmationMessage, saveConfirmationMessage,
-    getOwnerPhone, saveOwnerPhone,
     invalidateCache, DEFAULT_FLOW_STEPS, DEFAULT_WORKING_HOURS,
 } = require('./services/settings');
 
@@ -184,17 +183,6 @@ app.post('/api/settings/confirmation', async (req, res) => {
     res.json({ ok: true });
 });
 
-// Owner phone
-app.get('/api/settings/owner-phone', async (req, res) => {
-    if (!checkAuth(req, res)) return;
-    res.json({ phone: await getOwnerPhone() });
-});
-app.post('/api/settings/owner-phone', async (req, res) => {
-    if (!checkAuth(req, res)) return;
-    const phone = (req.body.phone || '').trim();
-    await saveOwnerPhone(phone);
-    res.json({ ok: true });
-});
 
 // ---- Send Message Helper ----
 async function sendMessage(phone, text) {

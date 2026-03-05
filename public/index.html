@@ -94,22 +94,6 @@
     <!-- TAB: Ayarlar -->
     <div id="tab-ayarlar" class="tab-content" style="display:none">
 
-      <!-- Owner Phone Card -->
-      <div class="settings-card">
-        <h3>📱 İşletme Sahibi Numarası</h3>
-        <p class="settings-hint">Yeni müşteri talebi geldiğinde bu numaraya WhatsApp bildirimi gönderilir.</p>
-        <div class="settings-row">
-          <div class="phone-input-wrap">
-            <span class="phone-prefix">+90</span>
-            <input type="tel" id="ownerPhone" placeholder="5XX XXX XX XX" maxlength="10" inputmode="numeric"
-              oninput="this.value=this.value.replace(/\D/g,'')" />
-          </div>
-          <button class="btn-save" style="margin-top:0" onclick="saveOwnerPhone()">💾 Kaydet</button>
-        </div>
-        <p id="ownerPhoneError" class="phone-error" style="display:none">⚠️ 10 haneli geçerli bir numara girin (5 ile
-          başlamalı)</p>
-      </div>
-
       <!-- Working Hours Card -->
       <div class="settings-card">
         <div class="settings-card-header">
