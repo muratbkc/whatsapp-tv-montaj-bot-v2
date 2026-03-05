@@ -13,6 +13,12 @@ const config = require('./config');
 const { useRedisAuthState, clearAuthState } = require('./auth/redis-auth');
 const { handleMessage } = require('./handlers/flow');
 const { getRecentCustomers, updateCustomerStatus } = require('./services/sheets');
+const {
+    getWorkingHours, saveWorkingHours,
+    getFlowSteps, saveFlowSteps,
+    getConfirmationMessage, saveConfirmationMessage,
+    invalidateCache, DEFAULT_FLOW_STEPS, DEFAULT_WORKING_HOURS,
+} = require('./services/settings');
 
 // ---- Express + Socket.io Setup ----
 const app = express();
@@ -118,13 +124,63 @@ io.use((socket, next) => {
 
 // ---- Send current state to newly connected socket ----
 io.on('connection', (socket) => {
-    // Immediately inform the new client about current bot status
     if (isConnected) {
         socket.emit('connected');
         socket.emit('stats', { messagesProcessed });
     } else {
         socket.emit('disconnected');
     }
+    // FIX: send bot pause state so page refresh shows correct button
+    if (isBotPaused) {
+        socket.emit('bot_paused');
+    } else {
+        socket.emit('bot_resumed');
+    }
+});
+
+// ---- Settings API ----
+const checkAuth = (req, res) => {
+    if (req.headers['x-password'] !== config.PANEL_PASSWORD) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return false;
+    }
+    return true;
+};
+
+// Working hours
+app.get('/api/settings/working-hours', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    res.json(await getWorkingHours());
+});
+app.post('/api/settings/working-hours', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    await saveWorkingHours({ ...DEFAULT_WORKING_HOURS, ...req.body });
+    res.json({ ok: true });
+});
+
+// Flow steps
+app.get('/api/settings/flow-steps', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    res.json(await getFlowSteps());
+});
+app.post('/api/settings/flow-steps', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    const { steps } = req.body;
+    if (!Array.isArray(steps)) return res.status(400).json({ error: 'steps must be array' });
+    await saveFlowSteps(steps);
+    invalidateCache();
+    res.json({ ok: true });
+});
+
+// Confirmation message
+app.get('/api/settings/confirmation', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    res.json({ message: await getConfirmationMessage() });
+});
+app.post('/api/settings/confirmation', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    await saveConfirmationMessage(req.body.message || '');
+    res.json({ ok: true });
 });
 
 // ---- Send Message Helper ----

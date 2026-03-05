@@ -39,54 +39,108 @@
       </div>
     </header>
 
-    <!-- QR Section -->
-    <div id="qrSection" class="qr-section">
-      <div class="qr-card">
-        <h2>WhatsApp Bağlantısı</h2>
-        <div id="qrContainer" class="qr-container">
-          <img id="qrImage" src="" alt="QR Code" style="display:none" />
-          <p id="qrStatus" class="qr-status">QR kod bekleniyor...</p>
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab-btn active" onclick="showTab('talepler')">📋 Talepler</button>
+      <button class="tab-btn" onclick="showTab('ayarlar')">⚙️ Ayarlar</button>
+    </nav>
+
+    <!-- TAB: Talepler -->
+    <div id="tab-talepler" class="tab-content">
+      <!-- QR Section -->
+      <div id="qrSection" class="qr-section">
+        <div class="qr-card">
+          <h2>WhatsApp Bağlantısı</h2>
+          <div id="qrContainer" class="qr-container">
+            <img id="qrImage" src="" alt="QR Code" style="display:none" />
+            <p id="qrStatus" class="qr-status">QR kod bekleniyor...</p>
+          </div>
+          <p class="qr-instructions">
+            1. Telefonunuzdaki WhatsApp'ı açın<br />
+            2. <strong>Ayarlar → Bağlı Cihazlar → Cihaz Bağla</strong><br />
+            3. Yukarıdaki QR kodu tarayın
+          </p>
         </div>
-        <p class="qr-instructions">
-          1. Telefonunuzdaki WhatsApp'ı açın<br />
-          2. <strong>Ayarlar → Bağlı Cihazlar → Cihaz Bağla</strong><br />
-          3. Yukarıdaki QR kodu tarayın
-        </p>
+      </div>
+
+      <!-- Stats -->
+      <div id="statsSection" class="stats-section" style="display:none">
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-value" id="todayCount">0</div>
+          <div class="stat-label">Bugünkü Talepler</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-value" id="pendingCount">0</div>
+          <div class="stat-label">Bekleyen</div>
+        </div>
+      </div>
+
+      <!-- Customers Table -->
+      <div id="tableSection" class="table-section" style="display:none">
+        <h2>Son Talepler</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr id="tableHead"></tr>
+            </thead>
+            <tbody id="customersBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- Stats -->
-    <div id="statsSection" class="stats-section" style="display:none">
-      <div class="stat-card">
-        <div class="stat-icon">📋</div>
-        <div class="stat-value" id="todayCount">0</div>
-        <div class="stat-label">Bugünkü Talepler</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">⏳</div>
-        <div class="stat-value" id="pendingCount">0</div>
-        <div class="stat-label">Bekleyen</div>
-      </div>
-    </div>
+    <!-- TAB: Ayarlar -->
+    <div id="tab-ayarlar" class="tab-content" style="display:none">
 
-    <!-- Customers Table -->
-    <div id="tableSection" class="table-section" style="display:none">
-      <h2>Son Talepler</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Tarih</th>
-              <th>İsim Soyisim</th>
-              <th>Telefon</th>
-              <th>TV Boyutu</th>
-              <th>Montaj Tipi</th>
-              <th>Durum</th>
-            </tr>
-          </thead>
-          <tbody id="customersBody"></tbody>
-        </table>
+      <!-- Working Hours Card -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>🕐 Çalışma Saati</h3>
+          <label class="toggle-switch">
+            <input type="checkbox" id="whEnabled" onchange="updateWorkingHours()" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <label>Başlangıç</label>
+          <input type="time" id="whStart" value="09:00" onchange="updateWorkingHours()" />
+        </div>
+        <div class="settings-row">
+          <label>Bitiş</label>
+          <input type="time" id="whEnd" value="18:00" onchange="updateWorkingHours()" />
+        </div>
+        <div class="settings-row col">
+          <label>Mesai Dışı Mesajı</label>
+          <textarea id="whMessage" rows="3" onchange="updateWorkingHours()"
+            placeholder="{{START}} ve {{END}} ile saat ekleyebilirsiniz"></textarea>
+        </div>
+        <p class="settings-hint">Devre dışıyken bot 7/24 yanıt verir. Aktifken belirtilen saatler dışında otomatik yanıt
+          gönderilir.</p>
       </div>
+
+      <!-- Confirmation Message Card -->
+      <div class="settings-card">
+        <h3>✅ Onay Mesajı</h3>
+        <p class="settings-hint">Talep tamamlandığında gönderilir. <code>{{summary}}</code> yazarsanız otomatik özet
+          eklenir.</p>
+        <textarea id="confirmationMsg" rows="5" placeholder="Onay mesajını yazın..."></textarea>
+        <button class="btn-save" onclick="saveConfirmation()">💾 Kaydet</button>
+      </div>
+
+      <!-- Flow Steps Card -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>💬 Konuşma Adımları</h3>
+          <button class="btn-add" onclick="addStep()">➕ Adım Ekle</button>
+        </div>
+        <p class="settings-hint">Adımlar sırayla sorulur. İsim adımı her zaman ilk olmalı (müşteri ismi onay mesajında
+          kullanılır).</p>
+        <div id="stepsList"></div>
+        <button class="btn-save" onclick="saveSteps()">💾 Adımları Kaydet</button>
+      </div>
+
     </div>
   </div>
 

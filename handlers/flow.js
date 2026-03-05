@@ -1,23 +1,39 @@
-// Main conversation flow engine
+// Main conversation flow engine — dynamic step system
 const { checkFaq } = require('./faq');
 const { notifyOwner } = require('./notifier');
 const { getState, setState, deleteState } = require('../services/redis');
 const { appendCustomer } = require('../services/sheets');
-const messages = require('../templates/messages');
+const {
+    getFlowSteps,
+    getConfirmationMessage,
+    isWithinWorkingHours,
+    formatOffMessage,
+    getWorkingHours,
+} = require('../services/settings');
 
 /**
  * Handle an incoming message from a customer.
- * @param {Function} sendMsg - function(phone, text) to send a WhatsApp message
- * @param {string} phone - sender phone number (e.g. "905XXXXXXXXX")
- * @param {string} message - the message body text
  */
 async function handleMessage(sendMsg, phone, message) {
+    // --- Step 0: Working hours check ---
+    const withinHours = await isWithinWorkingHours();
+    if (!withinHours) {
+        const wh = await getWorkingHours();
+        // Only send the off-hours message once per conversation gap (not repeatedly)
+        const state = await getState(phone);
+        if (!state || state.step !== 'OFF_HOURS_NOTIFIED') {
+            await sendMsg(phone, formatOffMessage(wh));
+            await setState(phone, { step: 'OFF_HOURS_NOTIFIED' }, 3600); // 1 hour TTL
+        }
+        return;
+    }
+
     // --- Step 1: FAQ / cancel check ---
     const { response: faqResponse, isCancel } = checkFaq(message);
 
     if (isCancel) {
         await deleteState(phone);
-        await sendMsg(phone, messages.CANCELLED);
+        await sendMsg(phone, '❌ Talebiniz iptal edildi. Tekrar yardımcı olmamızı isterseniz merhaba yazabilirsiniz. 👋');
         return;
     }
 
@@ -27,8 +43,13 @@ async function handleMessage(sendMsg, phone, message) {
     // --- Step 2.5: "yeni talep" keyword — always starts a new flow ---
     const lower = message.toLowerCase().trim();
     if (lower.includes('yeni talep') || lower.includes('yeni montaj')) {
-        await setState(phone, { step: 'ASK_NAME' });
-        await sendMsg(phone, messages.WELCOME);
+        await deleteState(phone);
+        const steps = await getFlowSteps();
+        const firstActive = steps.find((s) => s.isActive);
+        if (firstActive) {
+            await setState(phone, { step: firstActive.id, answers: {} });
+            await sendMsg(phone, firstActive.message);
+        }
         return;
     }
 
@@ -45,72 +66,84 @@ async function handleMessage(sendMsg, phone, message) {
     // --- Step 4: FAQ response ---
     if (faqResponse) {
         await sendMsg(phone, faqResponse);
-        if (state) {
-            await resendStepQuestion(sendMsg, phone, state);
-        }
+        if (state) await resendStepQuestion(sendMsg, phone, state);
         return;
     }
 
     // --- Step 5: New user ---
     if (!state) {
-        await setState(phone, { step: 'ASK_NAME' });
-        await sendMsg(phone, messages.WELCOME);
+        const steps = await getFlowSteps();
+        const firstActive = steps.find((s) => s.isActive);
+        if (firstActive) {
+            await setState(phone, { step: firstActive.id, answers: {} });
+            await sendMsg(phone, firstActive.message);
+        }
         return;
     }
 
-    // --- Step 6: Process answer based on step ---
-    const { step } = state;
+    // --- Step 6: Re-entered after off-hours ---
+    if (state.step === 'OFF_HOURS_NOTIFIED') {
+        await deleteState(phone);
+        const steps = await getFlowSteps();
+        const firstActive = steps.find((s) => s.isActive);
+        if (firstActive) {
+            await setState(phone, { step: firstActive.id, answers: {} });
+            await sendMsg(phone, firstActive.message);
+        }
+        return;
+    }
 
-    if (step === 'ASK_NAME') {
-        state.name = message.trim();
-        state.step = 'ASK_ADDRESS';
-        await setState(phone, state);
-        await sendMsg(phone, messages.ASK_ADDRESS(state.name));
-    } else if (step === 'ASK_ADDRESS') {
-        state.address = message.trim();
-        state.step = 'ASK_TV_SIZE';
-        await setState(phone, state);
-        await sendMsg(phone, messages.ASK_TV_SIZE);
-    } else if (step === 'ASK_TV_SIZE') {
-        state.tv_size = message.trim();
-        state.step = 'ASK_MOUNT_TYPE';
-        await setState(phone, state);
-        await sendMsg(phone, messages.ASK_MOUNT_TYPE);
-    } else if (step === 'ASK_MOUNT_TYPE') {
-        const mount_type = message.trim();
-        const data = {
-            name: state.name || '',
-            phone,
-            address: state.address || '',
-            tv_size: state.tv_size || '',
-            mount_type,
-        };
+    // --- Step 7: Dynamic flow processing ---
+    const steps = await getFlowSteps();
+    const activeSteps = steps.filter((s) => s.isActive);
+    const currentIndex = activeSteps.findIndex((s) => s.id === state.step);
 
-        // Save to Google Sheets
-        await appendCustomer(data);
-        // Notify business owner
-        await notifyOwner(sendMsg, data);
-        // Send confirmation to customer
-        await sendMsg(phone, messages.CONFIRMATION(data));
-        // Set state to COMPLETED (not delete — prevents immediate restart)
-        await setState(phone, { step: 'COMPLETED' });
-    } else {
+    if (currentIndex === -1) {
         // Unknown step — reset
         await deleteState(phone);
-        await sendMsg(phone, messages.UNKNOWN);
+        await sendMsg(phone, '🙏 Üzgünüm, bir hata oluştu. Lütfen tekrar "merhaba" yazın.');
+        return;
+    }
+
+    // Save the answer for current step
+    const currentStep = activeSteps[currentIndex];
+    const answers = state.answers || {};
+    answers[currentStep.redisKey] = message.trim();
+
+    const nextStep = activeSteps[currentIndex + 1];
+
+    if (nextStep) {
+        // Move to next step
+        const nextMsg = nextStep.message.replace('{{name}}', answers.name || '');
+        await setState(phone, { step: nextStep.id, answers });
+        await sendMsg(phone, nextMsg);
+    } else {
+        // All steps done — save and confirm
+        const confirmationTemplate = await getConfirmationMessage();
+
+        // Build summary lines from answers
+        const summaryLines = activeSteps.map((s) => {
+            const val = answers[s.redisKey] || '-';
+            return `${s.label}: ${val}`;
+        });
+
+        const confirmationMsg = confirmationTemplate.replace('{{summary}}', summaryLines.join('\n'));
+
+        // Prepare data object for sheets using dynamic column names
+        const data = { answers, phone };
+        await appendCustomer(data, activeSteps);
+        await notifyOwner(sendMsg, { ...answers, phone });
+        await sendMsg(phone, confirmationMsg);
+        await setState(phone, { step: 'COMPLETED' });
     }
 }
 
 async function resendStepQuestion(sendMsg, phone, state) {
-    const { step } = state;
-    if (step === 'ASK_NAME') {
-        await sendMsg(phone, messages.WELCOME);
-    } else if (step === 'ASK_ADDRESS') {
-        await sendMsg(phone, messages.ASK_ADDRESS(state.name || ''));
-    } else if (step === 'ASK_TV_SIZE') {
-        await sendMsg(phone, messages.ASK_TV_SIZE);
-    } else if (step === 'ASK_MOUNT_TYPE') {
-        await sendMsg(phone, messages.ASK_MOUNT_TYPE);
+    const steps = await getFlowSteps();
+    const currentStep = steps.find((s) => s.id === state.step);
+    if (currentStep) {
+        const msg = currentStep.message.replace('{{name}}', state.answers?.name || '');
+        await sendMsg(phone, msg);
     }
 }
 
