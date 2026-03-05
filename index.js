@@ -206,7 +206,21 @@ async function startBot() {
 
             if (!text.trim()) continue;
 
-            const phone = msg.key.remoteJid.replace('@s.whatsapp.net', '');
+            // Extract real phone number — Baileys v6 uses @lid format for some accounts.
+            // Real phone is in senderPn (preferred), participant, or remoteJid.
+            let phone = msg.key.remoteJid;
+            if (msg.key.senderPn) {
+                // senderPn = "905342894115@s.whatsapp.net"
+                phone = msg.key.senderPn.replace('@s.whatsapp.net', '').replace('@c.us', '');
+            } else if (msg.key.participant) {
+                phone = msg.key.participant.replace('@s.whatsapp.net', '').replace('@c.us', '');
+            } else if (phone.includes('@s.whatsapp.net')) {
+                phone = phone.replace('@s.whatsapp.net', '');
+            } else if (phone.includes('@lid')) {
+                // Fallback: keep the @lid ID but log a warning
+                phone = phone.replace('@lid', '');
+                console.warn(`[Bot] ⚠️ Could not resolve real phone for ${msg.key.remoteJid}, using LID as fallback`);
+            }
 
             console.log(`[Bot] 📩 Message from ${phone}: ${text.substring(0, 50)}`);
             messagesProcessed++;
