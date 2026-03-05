@@ -52,14 +52,15 @@ Bu surumle birlikte, Sheets bilgileri panelden degistirilebilir.
 Adimlar:
 1. `Ayarlar` sekmesine girin.
 2. `Google Sheets Entegrasyonu` kartini bulun.
-3. `Google Sheets ID` alanina hedef tablo ID'sini yazin.
-4. `GOOGLE_CREDS_JSON` alanina service account JSON metnini yapistirin.
-5. `Entegrasyonu Kaydet` butonuna basin.
+3. Hedef Google Sheets dosyanizi yetkilendirmek icin **Service Account e-postaniza ("client_email" adresiniz) Editör (Duzenleyici) yetkisiyle dosyanizi paylasin.**
+4. `Google Sheets ID` alanina hedef tablo ID'sini yazin.
+5. `GOOGLE_CREDS_JSON` alanina service account JSON metnini yapistirin.
+6. `Entegrasyonu Kaydet` butonuna basin.
 
 Notlar:
-- JSON gecersizse sistem kaydetmez ve hata verir.
+- JSON gecersizse veya dosya erisimi (Paylas) yapilmamissa, sistem kaydetmez ve hata verir.
 - Kaydedilen degerler Redis'te tutulur; uygulama yeniden baslasa da korunur.
-- Redis'te veri yoksa `.env` degerleri fallback olarak kullanilir.
+- Eger bos, yepyeni bir Sheets tablosu baglarsaniz; sistem otomatik olarak ilk satira basliklari (Tarih, Isim, vs.) ve Durum sutunu icin acilir liste ayarlarini yapilandiracaktir.
 
 ## 6) Konusma Akisini Duzenleme
 
