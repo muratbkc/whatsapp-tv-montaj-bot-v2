@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
+
 <body>
   <!-- Login Screen -->
   <div id="loginScreen" class="login-screen">
@@ -44,8 +46,8 @@
           <p id="qrStatus" class="qr-status">QR kod bekleniyor...</p>
         </div>
         <p class="qr-instructions">
-          1. Telefonunuzdaki WhatsApp'ı açın<br/>
-          2. <strong>Ayarlar → Bağlı Cihazlar → Cihaz Bağla</strong><br/>
+          1. Telefonunuzdaki WhatsApp'ı açın<br />
+          2. <strong>Ayarlar → Bağlı Cihazlar → Cihaz Bağla</strong><br />
           3. Yukarıdaki QR kodu tarayın
         </p>
       </div>
@@ -59,19 +61,9 @@
         <div class="stat-label">Bugünkü Talepler</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-value" id="totalCount">0</div>
-        <div class="stat-label">Toplam Müşteri</div>
-      </div>
-      <div class="stat-card">
         <div class="stat-icon">⏳</div>
         <div class="stat-value" id="pendingCount">0</div>
         <div class="stat-label">Bekleyen</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">💬</div>
-        <div class="stat-value" id="messageCount">0</div>
-        <div class="stat-label">Bugün İşlenen Mesaj</div>
       </div>
     </div>
 
@@ -99,4 +91,5 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
 </body>
+
 </html>

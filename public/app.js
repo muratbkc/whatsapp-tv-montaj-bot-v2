@@ -51,10 +51,6 @@
             updateStatus(false);
         });
 
-        socket.on('stats', (data) => {
-            $('#messageCount').textContent = data.messagesProcessed || 0;
-        });
-
         socket.on('new_customer', () => {
             loadCustomers();
         });
@@ -79,8 +75,6 @@
             });
             if (!res.ok) return;
             const data = await res.json();
-
-            $('#totalCount').textContent = data.total || 0;
 
             // Count today's and pending
             const today = new Date();
