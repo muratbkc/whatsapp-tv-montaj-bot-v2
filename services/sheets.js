@@ -179,13 +179,14 @@ async function initializeHeaders(sheetsId, googleCredsJson) {
         throw new Error('Google Sheets icinde calisacak sayfa bulunamadi');
     }
 
+    let existing = [];
     try {
         await sheet.loadHeaderRow();
+        existing = sheet.headerValues || [];
     } catch {
         // No header row probably means empty sheet
     }
 
-    const existing = sheet.headerValues || [];
     if (existing.length === 0) {
         const defaultHeaders = ['TARIH', 'ISIM', 'TELEFON', 'ADRES', 'TV_BOYUTU', 'MONTAJ_TIPI', 'DURUM'];
         await sheet.setHeaderRow(defaultHeaders);
