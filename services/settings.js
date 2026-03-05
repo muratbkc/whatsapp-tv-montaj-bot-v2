@@ -28,57 +28,7 @@ function setCache(key, value) {
     cache[key] = { value, ts: Date.now() };
 }
 
-// ---- Working Hours ----
-const WORKING_HOURS_KEY = 'settings:working_hours';
-const DEFAULT_WORKING_HOURS = {
-    enabled: false,
-    start: '09:00',
-    end: '18:00',
-    timezone: 'Europe/Istanbul',
-    offMessage: '⏰ Şu an mesai saatlerimiz dışındasınız.\n\nÇalışma saatlerimiz: {{START}} - {{END}}\n\nMesajınızı aldık, mesai başlangıcında size döneceğiz! 🙏',
-};
 
-async function getWorkingHours() {
-    const cached = getCached(WORKING_HOURS_KEY);
-    if (cached) return cached;
-
-    const raw = await redisGet(WORKING_HOURS_KEY);
-    const value = raw ? JSON.parse(raw) : DEFAULT_WORKING_HOURS;
-    setCache(WORKING_HOURS_KEY, value);
-    return value;
-}
-
-async function saveWorkingHours(data) {
-    await redisSet(WORKING_HOURS_KEY, JSON.stringify(data));
-    setCache(WORKING_HOURS_KEY, data); // update cache immediately
-}
-
-/**
- * Returns true if current Istanbul time is within working hours.
- * Returns true if working hours feature is disabled (let all messages through).
- */
-async function isWithinWorkingHours() {
-    const wh = await getWorkingHours();
-    if (!wh.enabled) return true;
-
-    const now = new Date();
-    // Get current time in Istanbul (UTC+3)
-    const istanbulTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
-    const currentMinutes = istanbulTime.getHours() * 60 + istanbulTime.getMinutes();
-
-    const [startH, startM] = wh.start.split(':').map(Number);
-    const [endH, endM] = wh.end.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-
-    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
-}
-
-function formatOffMessage(wh) {
-    return wh.offMessage
-        .replace('{{START}}', wh.start)
-        .replace('{{END}}', wh.end);
-}
 
 // ---- Flow Steps ----
 const FLOW_STEPS_KEY = 'settings:flow_steps';
@@ -210,10 +160,6 @@ function invalidateCache() {
 }
 
 module.exports = {
-    getWorkingHours,
-    saveWorkingHours,
-    isWithinWorkingHours,
-    formatOffMessage,
     getFlowSteps,
     saveFlowSteps,
     getConfirmationMessage,
@@ -222,6 +168,5 @@ module.exports = {
     saveSheetsConfig,
     invalidateCache,
     DEFAULT_FLOW_STEPS,
-    DEFAULT_WORKING_HOURS,
     DEFAULT_SHEETS_CONFIG,
 };

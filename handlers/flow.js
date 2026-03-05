@@ -6,28 +6,12 @@ const { appendCustomer } = require('../services/sheets');
 const {
     getFlowSteps,
     getConfirmationMessage,
-    isWithinWorkingHours,
-    formatOffMessage,
-    getWorkingHours,
 } = require('../services/settings');
 
 /**
  * Handle an incoming message from a customer.
  */
 async function handleMessage(sendMsg, phone, message) {
-    // --- Step 0: Working hours check ---
-    const withinHours = await isWithinWorkingHours();
-    if (!withinHours) {
-        const wh = await getWorkingHours();
-        // Only send the off-hours message once per conversation gap (not repeatedly)
-        const state = await getState(phone);
-        if (!state || state.step !== 'OFF_HOURS_NOTIFIED') {
-            await sendMsg(phone, formatOffMessage(wh));
-            await setState(phone, { step: 'OFF_HOURS_NOTIFIED' }, 3600); // 1 hour TTL
-        }
-        return;
-    }
-
     // --- Step 1: FAQ / cancel check ---
     const { response: faqResponse, isCancel } = checkFaq(message);
 
@@ -72,18 +56,6 @@ async function handleMessage(sendMsg, phone, message) {
 
     // --- Step 5: New user ---
     if (!state) {
-        const steps = await getFlowSteps();
-        const firstActive = steps.find((s) => s.isActive);
-        if (firstActive) {
-            await setState(phone, { step: firstActive.id, answers: {} });
-            await sendMsg(phone, firstActive.message);
-        }
-        return;
-    }
-
-    // --- Step 6: Re-entered after off-hours ---
-    if (state.step === 'OFF_HOURS_NOTIFIED') {
-        await deleteState(phone);
         const steps = await getFlowSteps();
         const firstActive = steps.find((s) => s.isActive);
         if (firstActive) {

@@ -72,12 +72,6 @@ Notlar:
 
 Kayit alinirken sutunlar otomatik olusturulur (eksik basliklar eklenir).
 
-## 7) Calisma Saatleri ve Onay Mesaji
-
-`Ayarlar` sekmesinden:
-- Mesai saatlerini ac/kapat
-- Mesai disi otomatik mesaji degistir
-- Talep tamamlaninca giden onay mesajini duzenle
 
 ## 8) Operasyonel Kullanim
 

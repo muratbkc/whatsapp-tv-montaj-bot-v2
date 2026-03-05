@@ -14,11 +14,10 @@ const { useRedisAuthState, clearAuthState } = require('./auth/redis-auth');
 const { handleMessage } = require('./handlers/flow');
 const { getRecentCustomers, updateCustomerStatus } = require('./services/sheets');
 const {
-    getWorkingHours, saveWorkingHours,
     getFlowSteps, saveFlowSteps,
     getConfirmationMessage, saveConfirmationMessage,
     getSheetsConfig, saveSheetsConfig,
-    invalidateCache, DEFAULT_FLOW_STEPS, DEFAULT_WORKING_HOURS,
+    invalidateCache, DEFAULT_FLOW_STEPS,
 } = require('./services/settings');
 
 // ---- Express + Socket.io Setup ----
@@ -205,17 +204,6 @@ const checkAuth = (req, res) => {
     }
     return true;
 };
-
-// Working hours
-app.get('/api/settings/working-hours', async (req, res) => {
-    if (!checkAuth(req, res)) return;
-    res.json(await getWorkingHours());
-});
-app.post('/api/settings/working-hours', async (req, res) => {
-    if (!checkAuth(req, res)) return;
-    await saveWorkingHours({ ...DEFAULT_WORKING_HOURS, ...req.body });
-    res.json({ ok: true });
-});
 
 // Flow steps
 app.get('/api/settings/flow-steps', async (req, res) => {
