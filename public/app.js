@@ -4,7 +4,6 @@
     let socket = null;
     let password = '';
     let botPaused = false;
-    window.currentSteps = [];
     const STATUS_PENDING = '\u23F3 Bekliyor';
     const STATUS_COMPLETED = '\u2705 Tamamland\u0131';
     const STATUS_CANCELLED = '\u274C \u0130ptal';
@@ -127,7 +126,7 @@
     };
 
     window.resetWhatsappSession = async function () {
-        const confirmed = window.confirm('Mevcut WhatsApp oturumu kapatilacak ve yeni QR olusturulacak. Devam edilsin mi?');
+        const confirmed = window.confirm('Mevcut WhatsApp hesabi cikis yapacak ve yeni QR kodu olusturulacak. Devam etmek istiyor musunuz?');
         if (!confirmed) return;
 
         const btn = $('#resetSessionBtn');
@@ -258,42 +257,14 @@
 
     async function loadSettings() {
         try {
-            // Working hours
-            const wh = await apiGet('/api/settings/working-hours');
-            $('#whEnabled').checked = !!wh.enabled;
-            $('#whStart').value = wh.start || '09:00';
-            $('#whEnd').value = wh.end || '18:00';
-            $('#whMessage').value = wh.offMessage || '';
-
             // Google Sheets config
             const sheets = await apiGet('/api/settings/sheets-config');
             $('#sheetsIdInput').value = sheets.sheetsId || '';
             $('#googleCredsJsonInput').value = sheets.googleCredsJson || '{}';
-
-            // Confirmation
-            const conf = await apiGet('/api/settings/confirmation');
-            $('#confirmationMsg').value = conf.message || '';
-
-            // Flow steps
-            window.currentSteps = await apiGet('/api/settings/flow-steps');
-            renderSteps();
         } catch (err) {
             showToast(`Ayarlar yuklenemedi: ${err.message}`);
         }
     }
-
-    window.updateWorkingHours = async function () {
-        try {
-            await apiPost('/api/settings/working-hours', {
-                enabled: $('#whEnabled').checked,
-                start: $('#whStart').value,
-                end: $('#whEnd').value,
-                offMessage: $('#whMessage').value,
-            });
-        } catch (err) {
-            showToast(`Calisma saati kaydedilemedi: ${err.message}`);
-        }
-    };
 
     window.saveGoogleSheetsConfig = async function () {
         const sheetsId = $('#sheetsIdInput').value.trim();
@@ -311,82 +282,6 @@
             showToast('Google Sheets ayarlari kaydedildi ✅');
         } catch (err) {
             showToast(`Google Sheets kaydedilemedi: ${err.message}`);
-        }
-    };
-
-    window.saveConfirmation = async function () {
-        try {
-            await apiPost('/api/settings/confirmation', { message: $('#confirmationMsg').value });
-            showToast('Onay mesaji kaydedildi ✅');
-        } catch (err) {
-            showToast(`Onay mesaji kaydedilemedi: ${err.message}`);
-        }
-    };
-
-    // --- Steps ---
-    function renderSteps() {
-        const list = $('#stepsList');
-        list.innerHTML = '';
-
-        window.currentSteps.forEach((step, i) => {
-            const div = document.createElement('div');
-            div.className = 'step-card';
-            div.innerHTML = `
-              <div class="step-header">
-                <div class="step-drag-handle">⠿</div>
-                <input class="step-label-input" value="${step.label || ''}" placeholder="Adim adi"
-                  onchange="window.currentSteps[${i}].label = this.value" />
-                <label class="toggle-switch small">
-                  <input type="checkbox" ${step.isActive ? 'checked' : ''}
-                    onchange="window.currentSteps[${i}].isActive = this.checked" />
-                  <span class="slider"></span>
-                </label>
-                <button class="btn-delete" onclick="deleteStep(${i})" title="Adimi Sil">🗑</button>
-              </div>
-              <div class="step-body">
-                <label class="step-sublabel">Sutun adi (Excel)</label>
-                <input class="step-col-input" value="${step.sheetColumn || ''}" placeholder="ORNEK_SUTUN"
-                  onchange="window.currentSteps[${i}].sheetColumn = this.value.toUpperCase().replace(/ /g,'_')" />
-                <label class="step-sublabel">Bot mesaji <span class="hint-tag">{{name}} ile isim ekle</span></label>
-                <textarea rows="3" onchange="window.currentSteps[${i}].message = this.value">${step.message || ''}</textarea>
-              </div>`;
-            list.appendChild(div);
-        });
-    }
-
-    window.addStep = function () {
-        const id = 'CUSTOM_' + Date.now();
-        window.currentSteps.push({
-            id,
-            label: 'Yeni Adim',
-            redisKey: id.toLowerCase(),
-            sheetColumn: 'YENI_SUTUN',
-            isActive: true,
-            message: 'Sorunuzu buraya yazin.',
-        });
-        renderSteps();
-    };
-
-    window.deleteStep = function (i) {
-        if (window.currentSteps.length <= 1) {
-            showToast('En az 1 adim olmali!');
-            return;
-        }
-        window.currentSteps.splice(i, 1);
-        renderSteps();
-    };
-
-    window.saveSteps = async function () {
-        const btn = document.querySelector('#tab-ayarlar .btn-save[onclick="saveSteps()"]');
-        if (btn) btn.disabled = true;
-
-        try {
-            await apiPost('/api/settings/flow-steps', { steps: window.currentSteps });
-            showToast('Adimlar kaydedildi ✅');
-        } catch (err) {
-            showToast(`Adimlar kaydedilemedi: ${err.message}`);
-        } finally {
-            if (btn) btn.disabled = false;
         }
     };
 
