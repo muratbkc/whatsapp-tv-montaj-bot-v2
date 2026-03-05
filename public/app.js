@@ -105,7 +105,8 @@
         try {
             const res = await fetch(endpoint, { method: 'POST', headers: { 'x-password': password } });
             if (res.ok) {
-                botPaused = !botPaused;
+                const data = await res.json();
+                botPaused = data.paused;
                 updateBotControlBtn();
             }
         } catch (err) {
