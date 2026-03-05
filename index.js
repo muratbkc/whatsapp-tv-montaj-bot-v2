@@ -206,17 +206,15 @@ async function startBot() {
 
             if (!text.trim()) continue;
 
-            // ---- Deduplication: skip if this message was already processed ----
+            // ---- Deduplication: atomic SET NX — only one instance processes each message ----
             const msgId = msg.key.id;
             const dedupKey = `processed:${msgId}`;
-            const { redisGet, redisSet } = require('./services/redis');
-            const alreadyProcessed = await redisGet(dedupKey);
-            if (alreadyProcessed) {
+            const { redisSetNX } = require('./services/redis');
+            const isFirstProcessor = await redisSetNX(dedupKey, '1', 60);
+            if (!isFirstProcessor) {
                 console.log(`[Bot] ⏭️ Skipping duplicate message: ${msgId}`);
                 continue;
             }
-            // Mark as processed for 60 seconds (enough to drop duplicates)
-            await redisSet(dedupKey, '1', 60);
 
             // Extract real phone number — Baileys v6 uses @lid format for some accounts.
             let phone = msg.key.remoteJid;

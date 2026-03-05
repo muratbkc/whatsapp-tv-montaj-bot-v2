@@ -71,11 +71,27 @@ async function redisDel(key) {
     }
 }
 
+// Atomic SET NX (only set if key does NOT exist)
+// Returns true if key was set (we won the race), false if already existed
+async function redisSetNX(key, value, ttl) {
+    try {
+        const val = encodeURIComponent(value);
+        const path = ttl ? `/set/${key}/${val}/nx/ex/${ttl}` : `/set/${key}/${val}/nx`;
+        const data = await redisRequest(path, 'POST');
+        // Upstash returns {result: "OK"} if set, {result: null} if already existed
+        return data.result === 'OK';
+    } catch (err) {
+        console.error(`[Redis] SETNX ${key}:`, err.message);
+        return true; // On error, allow processing (fail open)
+    }
+}
+
 module.exports = {
     getState,
     setState,
     deleteState,
     redisGet,
     redisSet,
+    redisSetNX,
     redisDel,
 };

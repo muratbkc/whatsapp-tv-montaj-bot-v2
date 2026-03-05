@@ -24,35 +24,30 @@ async function handleMessage(sendMsg, phone, message) {
     // --- Step 2: Get state ---
     const state = await getState(phone);
 
-    // --- Step 2.5: Completed cooldown ---
-    // If user just completed a request and writes again, don't restart flow immediately
+    // --- Step 2.5: "yeni talep" keyword — always starts a new flow ---
+    const lower = message.toLowerCase().trim();
+    if (lower.includes('yeni talep') || lower.includes('yeni montaj') || lower === 'yeni') {
+        await setState(phone, { step: 'ASK_NAME' });
+        await sendMsg(phone, messages.WELCOME);
+        return;
+    }
+
+    // --- Step 3: Completed cooldown ---
     if (state && state.step === 'COMPLETED') {
-        // If user says something after completion, check for FAQ
         if (faqResponse) {
             await sendMsg(phone, faqResponse);
             return;
         }
-        // Otherwise send a friendly "already done" message and reset
-        await sendMsg(phone, '✅ Talebiniz zaten alınmıştır. Yeni bir talep oluşturmak isterseniz "yeni talep" yazabilirsiniz.');
+        await sendMsg(phone, '✅ Talebiniz alınmıştır. Yeni bir montaj talebi için *"yeni talep"* yazabilirsiniz.');
         return;
     }
 
-    // --- Step 3: FAQ response (only if in a flow or new user) ---
+    // --- Step 4: FAQ response ---
     if (faqResponse) {
         await sendMsg(phone, faqResponse);
-        // Re-ask current step question if user is in a flow
         if (state) {
             await resendStepQuestion(sendMsg, phone, state);
         }
-        return;
-    }
-
-    // --- Step 4: Check for "new request" trigger ---
-    const lower = message.toLowerCase().trim();
-    if (state && state.step === 'COMPLETED' || lower.includes('yeni talep') || lower.includes('yeni montaj')) {
-        // Start fresh flow
-        await setState(phone, { step: 'ASK_NAME' });
-        await sendMsg(phone, messages.WELCOME);
         return;
     }
 
