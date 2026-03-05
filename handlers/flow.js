@@ -26,7 +26,7 @@ async function handleMessage(sendMsg, phone, message) {
 
     // --- Step 2.5: "yeni talep" keyword — always starts a new flow ---
     const lower = message.toLowerCase().trim();
-    if (lower.includes('yeni talep') || lower.includes('yeni montaj') || lower === 'yeni') {
+    if (lower.includes('yeni talep') || lower.includes('yeni montaj')) {
         await setState(phone, { step: 'ASK_NAME' });
         await sendMsg(phone, messages.WELCOME);
         return;
