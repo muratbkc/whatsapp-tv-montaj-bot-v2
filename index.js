@@ -12,7 +12,7 @@ const path = require('path');
 const config = require('./config');
 const { useRedisAuthState, clearAuthState } = require('./auth/redis-auth');
 const { handleMessage } = require('./handlers/flow');
-const { getRecentCustomers } = require('./services/sheets');
+const { getRecentCustomers, updateCustomerStatus } = require('./services/sheets');
 
 // ---- Express + Socket.io Setup ----
 const app = express();
@@ -53,6 +53,28 @@ app.get('/api/customers', async (req, res) => {
     try {
         const data = await getRecentCustomers(20);
         res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update customer status
+app.post('/api/customers/status', async (req, res) => {
+    if (req.headers['x-password'] !== config.PANEL_PASSWORD) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { rowNumber, status } = req.body;
+        if (!rowNumber || !status) {
+            return res.status(400).json({ error: 'Missing parameters' });
+        }
+
+        const success = await updateCustomerStatus(rowNumber, status);
+        if (success) {
+            io.emit('new_customer'); // Broadcast change to all clients
+            return res.json({ ok: true });
+        }
+        res.status(400).json({ error: 'Could not update status' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

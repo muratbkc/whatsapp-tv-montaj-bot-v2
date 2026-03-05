@@ -67,6 +67,24 @@
         }
     }
 
+    // --- Change Status ---
+    window.changeStatus = async function (rowNumber, status) {
+        try {
+            await fetch('/api/customers/status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-password': password
+                },
+                body: JSON.stringify({ rowNumber: parseInt(rowNumber), status })
+            });
+            // The socket will broadcast 'new_customer' and auto-refresh the table
+        } catch (err) {
+            console.error('Change status error:', err);
+            alert('Durum güncellenirken bir hata oluştu');
+        }
+    };
+
     // --- Load customers from API ---
     async function loadCustomers() {
         try {
@@ -90,13 +108,24 @@
                 if (c.durum && c.durum.includes('Bekliyor')) pendingN++;
 
                 const tr = document.createElement('tr');
+
+                const isBekliyor = c.durum.includes('Bekliyor') ? 'selected' : '';
+                const isTamamlandi = c.durum.includes('Tamamlandı') ? 'selected' : '';
+                const isIptal = c.durum.includes('İptal') ? 'selected' : '';
+
                 tr.innerHTML = `
           <td>${c.tarih}</td>
           <td>${c.isim}</td>
           <td>${c.telefon}</td>
           <td>${c.tv_boyutu}</td>
           <td>${c.montaj_tipi}</td>
-          <td>${c.durum}</td>`;
+          <td>
+             <select onchange="changeStatus('${c.rowNumber}', this.value)" class="status-select ${c.durum.includes('Bekliyor') ? 'status-pending' : c.durum.includes('Tamamlandı') ? 'status-completed' : 'status-cancelled'}">
+                <option value="⏳ Bekliyor" ${isBekliyor}>⏳ Bekliyor</option>
+                <option value="✅ Tamamlandı" ${isTamamlandi}>✅ Tamamlandı</option>
+                <option value="❌ İptal" ${isIptal}>❌ İptal</option>
+             </select>
+          </td>`;
                 tbody.appendChild(tr);
             });
 

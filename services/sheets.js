@@ -64,6 +64,7 @@ async function getRecentCustomers(limit = 20) {
 
         // Return the last N rows, newest first
         const recent = rows.slice(-limit).reverse().map((row) => ({
+            rowNumber: row.rowNumber,
             tarih: row.get('TARIH') || '',
             isim: row.get('ISIM') || '',
             telefon: row.get('TELEFON') || '',
@@ -80,4 +81,31 @@ async function getRecentCustomers(limit = 20) {
     }
 }
 
-module.exports = { appendCustomer, getRecentCustomers };
+async function updateCustomerStatus(rowNumber, newStatus) {
+    try {
+        const creds = JSON.parse(GOOGLE_CREDS_JSON);
+        const auth = new JWT({
+            email: creds.client_email,
+            key: creds.private_key,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+
+        const doc = new GoogleSpreadsheet(SHEETS_ID, auth);
+        await doc.loadInfo();
+        const sheet = doc.sheetsByIndex[0];
+        const rows = await sheet.getRows();
+
+        const targetRow = rows.find(r => r.rowNumber === rowNumber);
+        if (targetRow) {
+            targetRow.set('DURUM', newStatus);
+            await targetRow.save();
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error('[Sheets] Update status error:', err.message);
+        return false;
+    }
+}
+
+module.exports = { appendCustomer, getRecentCustomers, updateCustomerStatus };
