@@ -159,4 +159,76 @@ async function updateCustomerStatus(rowNumber, newStatus) {
     }
 }
 
-module.exports = { appendCustomer, getRecentCustomers, updateCustomerStatus };
+/**
+ * Initialize headers and data validation for a brand new sheet.
+ */
+async function initializeHeaders(sheetsId, googleCredsJson) {
+    if (!sheetsId) throw new Error('SHEETS_ID ayarlanmamis');
+
+    let doc;
+    const authClient = makeAuth(googleCredsJson);
+    try {
+        doc = new GoogleSpreadsheet(sheetsId, authClient);
+        await doc.loadInfo();
+    } catch (e) {
+        throw new Error('Google Sheets erisim hatasi: Lutfen ID ve JSON bilgilerini, ayrıca "Paylas" kismi ile izinleri kontrol edin.');
+    }
+
+    const sheet = doc.sheetsByIndex[0];
+    if (!sheet) {
+        throw new Error('Google Sheets icinde calisacak sayfa bulunamadi');
+    }
+
+    try {
+        await sheet.loadHeaderRow();
+    } catch {
+        // No header row probably means empty sheet
+    }
+
+    const existing = sheet.headerValues || [];
+    if (existing.length === 0) {
+        const defaultHeaders = ['TARIH', 'ISIM', 'TELEFON', 'ADRES', 'TV_BOYUTU', 'MONTAJ_TIPI', 'DURUM'];
+        await sheet.setHeaderRow(defaultHeaders);
+        console.log('[Sheets] Initialize: Default headers added to an empty sheet.');
+
+        const durumColumnIndex = defaultHeaders.indexOf('DURUM'); // should be 6
+
+        try {
+            await authClient.request({
+                url: `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}:batchUpdate`,
+                method: 'POST',
+                data: {
+                    requests: [
+                        {
+                            setDataValidation: {
+                                range: {
+                                    sheetId: sheet.sheetId,
+                                    startRowIndex: 1, // Start after header row
+                                    startColumnIndex: durumColumnIndex,
+                                    endColumnIndex: durumColumnIndex + 1
+                                },
+                                rule: {
+                                    condition: {
+                                        type: 'ONE_OF_LIST',
+                                        values: [
+                                            { userEnteredValue: "⏳ Bekliyor" },
+                                            { userEnteredValue: "✅ Tamamlandı" },
+                                            { userEnteredValue: "❌ İptal" }
+                                        ]
+                                    },
+                                    showCustomUi: true,
+                                    strict: true
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+            console.log('[Sheets] Initialize: Data Validation enabled for DURUM column.');
+        } catch (validationErr) {
+            console.error('[Sheets] Data validation could not be applied:', validationErr.message);
+        }
+    }
+}
+
+module.exports = { appendCustomer, getRecentCustomers, updateCustomerStatus, initializeHeaders };

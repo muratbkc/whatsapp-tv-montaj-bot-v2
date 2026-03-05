@@ -250,10 +250,16 @@ app.get('/api/settings/sheets-config', async (req, res) => {
 app.post('/api/settings/sheets-config', async (req, res) => {
     if (!checkAuth(req, res)) return;
     try {
-        await saveSheetsConfig({
-            sheetsId: req.body.sheetsId || '',
-            googleCredsJson: req.body.googleCredsJson || '{}',
-        });
+        const sheetsId = req.body.sheetsId?.trim() || '';
+        const googleCredsJson = req.body.googleCredsJson?.trim() || '{}';
+
+        // Only try to initialize if user actually provided credentials
+        if (sheetsId && googleCredsJson && googleCredsJson !== '{}') {
+            const { initializeHeaders } = require('./services/sheets');
+            await initializeHeaders(sheetsId, googleCredsJson);
+        }
+
+        await saveSheetsConfig({ sheetsId, googleCredsJson });
         invalidateCache();
         res.json({ ok: true });
     } catch (err) {
