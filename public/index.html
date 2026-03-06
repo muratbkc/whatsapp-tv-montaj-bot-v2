@@ -131,6 +131,16 @@
         </div>
         <button class="btn-save" onclick="saveGoogleSheetsConfig()">💾 Entegrasyonu Kaydet</button>
       </div>
+
+      <!-- Blocklist Card -->
+      <div class="settings-card">
+        <h3>🚫 Kara Liste (Engellenen Numaralar)</h3>
+        <p class="settings-hint">Botun yanıt vermemesini istediğiniz numaraları her satıra bir tane gelecek şekilde girin. (Örn: 905551234567)</p>
+        <div class="settings-row col">
+          <textarea id="blocklistInput" class="mono" rows="6" placeholder="Her satıra bir numara..."></textarea>
+        </div>
+        <button class="btn-save" onclick="saveBlocklist()">💾 Kara Listeyi Kaydet</button>
+      </div>
     </div>
   </div>
 

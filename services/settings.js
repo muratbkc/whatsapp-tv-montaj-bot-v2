@@ -14,6 +14,10 @@ const config = require('../config');
 const cache = {};
 const CACHE_TTL_MS = 60_000;
 
+// ---- Blocklist ----
+const BLOCKLIST_KEY = 'settings:blocklist';
+const DEFAULT_BLOCKLIST = [];
+
 function getCached(key) {
     const entry = cache[key];
     if (!entry) return null;
@@ -154,6 +158,22 @@ async function saveSheetsConfig(data) {
     setCache(SHEETS_CONFIG_KEY, value);
 }
 
+async function getBlocklist() {
+    const cached = getCached(BLOCKLIST_KEY);
+    if (cached) return cached;
+
+    const raw = await redisGet(BLOCKLIST_KEY);
+    const value = raw ? JSON.parse(raw) : DEFAULT_BLOCKLIST;
+    setCache(BLOCKLIST_KEY, value);
+    return value;
+}
+
+async function saveBlocklist(list) {
+    const value = Array.isArray(list) ? list : [];
+    await redisSet(BLOCKLIST_KEY, JSON.stringify(value));
+    setCache(BLOCKLIST_KEY, value);
+}
+
 // Invalidate all caches (called after save to force fresh read next time)
 function invalidateCache() {
     Object.keys(cache).forEach((k) => delete cache[k]);
@@ -166,7 +186,10 @@ module.exports = {
     saveConfirmationMessage,
     getSheetsConfig,
     saveSheetsConfig,
+    getBlocklist,
+    saveBlocklist,
     invalidateCache,
     DEFAULT_FLOW_STEPS,
     DEFAULT_SHEETS_CONFIG,
+    DEFAULT_BLOCKLIST,
 };

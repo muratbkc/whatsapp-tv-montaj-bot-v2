@@ -17,6 +17,7 @@ const {
     getFlowSteps, saveFlowSteps,
     getConfirmationMessage, saveConfirmationMessage,
     getSheetsConfig, saveSheetsConfig,
+    getBlocklist, saveBlocklist,
     invalidateCache, DEFAULT_FLOW_STEPS,
 } = require('./services/settings');
 
@@ -255,6 +256,19 @@ app.post('/api/settings/sheets-config', async (req, res) => {
     }
 });
 
+// Blocklist
+app.get('/api/settings/blocklist', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    res.json(await getBlocklist());
+});
+app.post('/api/settings/blocklist', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    const { blocklist } = req.body;
+    if (!Array.isArray(blocklist)) return res.status(400).json({ error: 'blocklist must be array' });
+    await saveBlocklist(blocklist);
+    invalidateCache();
+    res.json({ ok: true });
+});
 
 // ---- Send Message Helper ----
 async function sendMessage(phone, text) {
@@ -414,6 +428,13 @@ async function startBot() {
             } else if (phone.includes('@lid')) {
                 phone = phone.replace('@lid', '');
                 console.warn(`[Bot] ⚠️ Could not resolve real phone for ${msg.key.remoteJid}`);
+            }
+
+            // ---- Blocklist Check ----
+            const blocklist = await getBlocklist();
+            if (blocklist.includes(phone)) {
+                console.log(`[Bot] 🚫 Skipping message from blocked number: ${phone}`);
+                continue;
             }
 
             console.log(`[Bot] 📩 Message from ${phone}: ${text.substring(0, 50)}`);

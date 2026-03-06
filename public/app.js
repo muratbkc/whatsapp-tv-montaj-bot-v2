@@ -258,6 +258,10 @@
             const sheets = await apiGet('/api/settings/sheets-config');
             $('#sheetsIdInput').value = sheets.sheetsId || '';
             $('#googleCredsJsonInput').value = sheets.googleCredsJson || '{}';
+
+            // Blocklist
+            const blocklistData = await apiGet('/api/settings/blocklist');
+            $('#blocklistInput').value = (blocklistData || []).join('\n');
         } catch (err) {
             showToast(`Ayarlar yuklenemedi: ${err.message}`);
         }
@@ -279,6 +283,18 @@
             showToast('Google Sheets ayarlari kaydedildi ✅');
         } catch (err) {
             showToast(`Google Sheets kaydedilemedi: ${err.message}`);
+        }
+    };
+
+    window.saveBlocklist = async function () {
+        const text = $('#blocklistInput').value;
+        const blocklist = text.split('\n').map(n => n.trim()).filter(n => n);
+
+        try {
+            await apiPost('/api/settings/blocklist', { blocklist });
+            showToast('Kara liste kaydedildi ✅');
+        } catch (err) {
+            showToast(`Kara liste kaydedilemedi: ${err.message}`);
         }
     };
 
