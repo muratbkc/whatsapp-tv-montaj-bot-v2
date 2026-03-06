@@ -49,7 +49,7 @@ const DEFAULT_FLOW_STEPS = [
         redisKey: 'address',
         sheetColumn: 'ADRES',
         isActive: true,
-        message: `Teşekkürler {{name}} Bey/Hanım! 😊\n\nAçık adresiniz nedir? (İlçe, sokak ve bina/daire no)`,
+        message: `Teşekkürler {{name}} Bey/Hanım! \n\nAçık adresiniz nedir? (İlçe, sokak ve bina/daire no)`,
     },
     {
         id: 'ASK_TV_SIZE',
@@ -57,7 +57,7 @@ const DEFAULT_FLOW_STEPS = [
         redisKey: 'tv_size',
         sheetColumn: 'TV_BOYUTU',
         isActive: true,
-        message: `Adresinizi aldım! 📍\n\nTV'nizin ekran boyutu nedir?\n(Bilmiyorsanız TV'nin arkasındaki etikette yazar. Örn: 43", 55", 65")`,
+        message: `Adresinizi aldım! 📍\n\nTV'nizin ekran boyutu nedir?`,
     },
     {
         id: 'ASK_MOUNT_TYPE',
@@ -65,13 +65,13 @@ const DEFAULT_FLOW_STEPS = [
         redisKey: 'mount_type',
         sheetColumn: 'MONTAJ_TIPI',
         isActive: true,
-        message: `Anladım! 👍\n\nSon olarak: TV'yi *duvara* mı yoksa *sehpaya* mı kurulmasını istiyorsunuz?`,
+        message: `Son olarak: TV'yi *duvara* mı yoksa *sehpaya* mı kurulmasını istiyorsunuz?`,
     },
 ];
 
 const CONFIRMATION_KEY = 'settings:confirmation_message';
 const DEFAULT_CONFIRMATION =
-    `✅ Talebiniz başarıyla alındı! Ekibimiz en kısa sürede sizinle iletişime geçecektir. 🔧`;
+    `✅ Talebiniz başarıyla alındı! Ekibimiz en kısa sürede sizinle iletişime geçecektir.`;
 
 // ---- Google Sheets Integration ----
 const SHEETS_CONFIG_KEY = 'settings:sheets_config';
