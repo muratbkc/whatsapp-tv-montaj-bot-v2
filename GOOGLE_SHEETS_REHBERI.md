@@ -30,7 +30,7 @@ Bu adım biraz daha teknik görünse de aslında "Botumuz adına sanal bir Googl
 1. [Google Cloud Console](https://console.cloud.google.com/)'a gidin. (Giriş yapmadıysanız Google hesabınızla giriş yapın).
 2. Kayıt olurken şartları kabul edin. (Kredi kartı vs. istemez, ücretsizdir).
 3. Üst menüde "Bir Proje Seçin" (Select a project) yazan yere tıklayın ve açılan pencerede sağ üstteki **Yeni Proje (New Project)** butonuna basın.
-4. Proje adına örneğin `Whatsapp-Bot` yazın ve **Oluştur (Create)** butonuna basın.
+4. Proje adına örneğin `Whatsapp-Bot` yazın ve **Oluştur (Create)** butonuna basın. *(Not: Buraya tamamen rastgele, istediğiniz herhangi bir ismi verebilirsiniz. Projemize özel olmak zorunda değildir.)*
 
 ### Adım 2: API İzinlerini Açma
 Botun tablolara erişebilmesi için Sheets yetkisini açmamız lazım.
@@ -42,7 +42,7 @@ Botun tablolara erişebilmesi için Sheets yetkisini açmamız lazım.
 1. Sol menüden **APIs & Services (API'ler ve Hizmetler)** -> **Credentials (Kimlik Bilgileri)** sekmesine girin.
 2. Üstten **+ KİMLİK BİLGİSİ OLUŞTUR (+ CREATE CREDENTIALS)** yazısına tıklayın.
 3. Açılan listeden **Hizmet Hesabı (Service Account)** seçeneğine tıklayın.
-4. Adına `bot-hesabi` yazın ve "Oluştur ve Devam Et" (Create and Continue) diyerek en alttaki Bitti (Done) butonuna basın. Başka bir rol seçmenize gerek yok.
+4. Adına `bot-hesabi` yazın ve "Oluştur ve Devam Et" (Create and Continue) diyerek en alttaki Bitti (Done) butonuna basın. Başka bir rol seçmenize gerek yok. *(Not: Buraya da İngilizce karakterlerle istediğiniz herhangi bir isim veya lakap yazabilirsiniz, botun çalışmasını kesinlikle etkilemez.)*
 
 ### Adım 4: JSON Dosyasını İndirme
 1. Sizi tekrar Kimlik Bilgileri listesine atacaktır. Ekranın alt kısmında "Hizmet Hesapları" listesinde az önce oluşturduğunuz `bot-hesabi@...` ile başlayan hesabı göreceksiniz. E-posta adresine benzeyen yazıya tıklayarak içine girin.
