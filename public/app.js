@@ -162,8 +162,17 @@
     async function loadCustomers() {
         try {
             const res = await fetch('/api/customers', { headers: { 'x-password': password } });
+            const p1 = await fetch('/api/settings/flow-steps', { headers: { 'x-password': password } });
+            const p2 = await fetch('/api/settings/fault-steps', { headers: { 'x-password': password } });
+
             if (!res.ok) return;
             const data = await res.json();
+            const flowSteps = p1.ok ? await p1.json() : [];
+            const faultSteps = p2.ok ? await p2.json() : [];
+
+            // Backend'deki ayarlara gore ilgili gecerli kolonlari seciyoruz
+            const montajCols = flowSteps.map(s => s.sheetColumn);
+            const arizaCols = faultSteps.map(s => s.sheetColumn);
 
             const today = new Date();
             const todayStr = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
@@ -174,11 +183,13 @@
             const theadMontaj = $('#tableHeadMontaj');
             const theadAriza = $('#tableHeadAriza');
 
-            if (data.headers) {
-                const headerHtml = ['Tarih', 'Telefon', ...data.headers.filter((h) => !['TARIH', 'TELEFON', 'DURUM', 'TALEP_TIPI'].includes(h)), 'Durum']
+            if (theadMontaj) {
+                theadMontaj.innerHTML = ['Tarih', 'Telefon', ...montajCols, 'Durum']
                     .map((h) => `<th>${h}</th>`).join('');
-                if (theadMontaj) theadMontaj.innerHTML = headerHtml;
-                if (theadAriza) theadAriza.innerHTML = headerHtml;
+            }
+            if (theadAriza) {
+                theadAriza.innerHTML = ['Tarih', 'Telefon', ...arizaCols, 'Durum']
+                    .map((h) => `<th>${h}</th>`).join('');
             }
 
             const tbodyMontaj = $('#customersBodyMontaj');
@@ -199,12 +210,11 @@
                     if (isAriza) arizaPendingN++;
                 }
 
-                const dynamicCols = data.headers
-                    ? data.headers
-                        .filter((h) => !['TARIH', 'TELEFON', 'DURUM', 'TALEP_TIPI'].includes(h))
-                        .map((h) => `<td>${c.columns?.[h] || '-'}</td>`)
-                        .join('')
-                    : '';
+                // Sadece hangi tabloda basiliyorsa o tablonun basliklarini kullan
+                const relevantCols = isAriza ? arizaCols : montajCols;
+                const dynamicCols = relevantCols
+                    .map((h) => `<td>${c.columns?.[h] || '-'}</td>`)
+                    .join('');
 
                 const isCompletedStatus = c.durum.includes('Tamamlandi') || c.durum.includes('Tamamland\u0131');
                 const isCancelledStatus = c.durum.includes('Iptal') || c.durum.includes('\u0130ptal');
