@@ -59,9 +59,11 @@
         });
 
         socket.on('connected', () => {
-            $('#qrSection').style.display = 'none';
-            $('#statsSection').style.display = 'grid';
-            $('#tableSection').style.display = 'block';
+            $('#qrSectionMontaj').style.display = 'none';
+            $('#statsSectionMontaj').style.display = 'grid';
+            $('#tableSectionMontaj').style.display = 'block';
+            $('#statsSectionAriza').style.display = 'grid';
+            $('#tableSectionAriza').style.display = 'block';
             $('#botControlBtn').style.display = 'inline-flex';
             $('#resetSessionBtn').style.display = 'inline-flex';
             updateStatus(true);
@@ -139,12 +141,14 @@
                 throw new Error(data.error || 'Hesap degistirme islemi basarisiz');
             }
 
-            $('#qrImage').style.display = 'none';
-            $('#qrStatus').style.display = 'block';
-            $('#qrStatus').textContent = 'Yeni QR olusturuluyor...';
-            $('#qrSection').style.display = 'flex';
-            $('#statsSection').style.display = 'none';
-            $('#tableSection').style.display = 'none';
+            $('#qrImageMontaj').style.display = 'none';
+            $('#qrStatusMontaj').style.display = 'block';
+            $('#qrStatusMontaj').textContent = 'Yeni QR olusturuluyor...';
+            $('#qrSectionMontaj').style.display = 'flex';
+            $('#statsSectionMontaj').style.display = 'none';
+            $('#tableSectionMontaj').style.display = 'none';
+            $('#statsSectionAriza').style.display = 'none';
+            $('#tableSectionAriza').style.display = 'none';
 
             showToast('Oturum sifirlandi. Yeni QR kodu birazdan gelecek.');
         } catch (err) {
@@ -163,27 +167,41 @@
 
             const today = new Date();
             const todayStr = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
-            let todayN = 0;
-            let pendingN = 0;
 
-            // Build dynamic header
-            const thead = $('#tableHead');
-            if (thead && data.headers) {
-                thead.innerHTML = ['Tarih', 'Telefon', ...data.headers.filter((h) => !['TARIH', 'TELEFON', 'DURUM'].includes(h)), 'Durum']
-                    .map((h) => `<th>${h}</th>`)
-                    .join('');
+            let montajTodayN = 0, montajPendingN = 0;
+            let arizaTodayN = 0, arizaPendingN = 0;
+
+            const theadMontaj = $('#tableHeadMontaj');
+            const theadAriza = $('#tableHeadAriza');
+
+            if (data.headers) {
+                const headerHtml = ['Tarih', 'Telefon', ...data.headers.filter((h) => !['TARIH', 'TELEFON', 'DURUM', 'TALEP_TIPI'].includes(h)), 'Durum']
+                    .map((h) => `<th>${h}</th>`).join('');
+                if (theadMontaj) theadMontaj.innerHTML = headerHtml;
+                if (theadAriza) theadAriza.innerHTML = headerHtml;
             }
 
-            const tbody = $('#customersBody');
-            tbody.innerHTML = '';
+            const tbodyMontaj = $('#customersBodyMontaj');
+            const tbodyAriza = $('#customersBodyAriza');
+            tbodyMontaj.innerHTML = '';
+            tbodyAriza.innerHTML = '';
 
             (data.recent || []).forEach((c) => {
-                if (c.tarih && c.tarih.startsWith(todayStr)) todayN++;
-                if (c.durum && c.durum.includes('Bekliyor')) pendingN++;
+                const isMontaj = c.talep_tipi === 'Montaj';
+                const isAriza = c.talep_tipi === 'Arıza';
+
+                if (c.tarih && c.tarih.startsWith(todayStr)) {
+                    if (isMontaj) montajTodayN++;
+                    if (isAriza) arizaTodayN++;
+                }
+                if (c.durum && c.durum.includes('Bekliyor')) {
+                    if (isMontaj) montajPendingN++;
+                    if (isAriza) arizaPendingN++;
+                }
 
                 const dynamicCols = data.headers
                     ? data.headers
-                        .filter((h) => !['TARIH', 'TELEFON', 'DURUM'].includes(h))
+                        .filter((h) => !['TARIH', 'TELEFON', 'DURUM', 'TALEP_TIPI'].includes(h))
                         .map((h) => `<td>${c.columns?.[h] || '-'}</td>`)
                         .join('')
                     : '';
@@ -207,11 +225,18 @@
                       <option value="${STATUS_CANCELLED}" ${isIptal}>${STATUS_CANCELLED}</option>
                     </select>
                   </td>`;
-                tbody.appendChild(tr);
+
+                if (isAriza) {
+                    tbodyAriza.appendChild(tr);
+                } else {
+                    tbodyMontaj.appendChild(tr); // Default is install 
+                }
             });
 
-            $('#todayCount').textContent = todayN;
-            $('#pendingCount').textContent = pendingN;
+            $('#todayCountMontaj').textContent = montajTodayN;
+            $('#pendingCountMontaj').textContent = montajPendingN;
+            $('#todayCountAriza').textContent = arizaTodayN;
+            $('#pendingCountAriza').textContent = arizaPendingN;
         } catch (err) {
             console.error('Load customers error:', err);
         }
@@ -262,14 +287,6 @@
             // Blocklist
             const blocklistData = await apiGet('/api/settings/blocklist');
             $('#blocklistInput').value = (blocklistData || []).join('\n');
-
-            // Flow Steps
-            const flowStepsData = await apiGet('/api/settings/flow-steps');
-            $('#flowStepsInput').value = JSON.stringify(flowStepsData, null, 2);
-
-            // Fault Steps
-            const faultStepsData = await apiGet('/api/settings/fault-steps');
-            $('#faultStepsInput').value = JSON.stringify(faultStepsData, null, 2);
         } catch (err) {
             showToast(`Ayarlar yuklenemedi: ${err.message}`);
         }
@@ -303,26 +320,6 @@
             showToast('Kara liste kaydedildi ✅');
         } catch (err) {
             showToast(`Kara liste kaydedilemedi: ${err.message}`);
-        }
-    };
-
-    window.saveFlowSteps = async function () {
-        try {
-            const steps = JSON.parse($('#flowStepsInput').value);
-            await apiPost('/api/settings/flow-steps', { steps });
-            showToast('Montaj soruları kaydedildi ✅');
-        } catch (err) {
-            showToast(`Montaj JSON Kaydetme Hatası: ${err.message}`);
-        }
-    };
-
-    window.saveFaultSteps = async function () {
-        try {
-            const steps = JSON.parse($('#faultStepsInput').value);
-            await apiPost('/api/settings/fault-steps', { steps });
-            showToast('Arıza soruları kaydedildi ✅');
-        } catch (err) {
-            showToast(`Arıza JSON Kaydetme Hatası: ${err.message}`);
         }
     };
 
