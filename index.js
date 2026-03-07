@@ -15,6 +15,7 @@ const { handleMessage } = require('./handlers/flow');
 const { getRecentCustomers, updateCustomerStatus } = require('./services/sheets');
 const {
     getFlowSteps, saveFlowSteps,
+    getFaultFlowSteps, saveFaultFlowSteps,
     getConfirmationMessage, saveConfirmationMessage,
     getSheetsConfig, saveSheetsConfig,
     getBlocklist, saveBlocklist,
@@ -216,6 +217,20 @@ app.post('/api/settings/flow-steps', async (req, res) => {
     const { steps } = req.body;
     if (!Array.isArray(steps)) return res.status(400).json({ error: 'steps must be array' });
     await saveFlowSteps(steps);
+    invalidateCache();
+    res.json({ ok: true });
+});
+
+// Fault steps
+app.get('/api/settings/fault-steps', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    res.json(await getFaultFlowSteps());
+});
+app.post('/api/settings/fault-steps', async (req, res) => {
+    if (!checkAuth(req, res)) return;
+    const { steps } = req.body;
+    if (!Array.isArray(steps)) return res.status(400).json({ error: 'steps must be array' });
+    await saveFaultFlowSteps(steps);
     invalidateCache();
     res.json({ ok: true });
 });

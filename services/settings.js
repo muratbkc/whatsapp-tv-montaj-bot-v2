@@ -73,6 +73,44 @@ const DEFAULT_FLOW_STEPS = [
     },
 ];
 
+// ---- Fault Flow Steps ----
+const FAULT_FLOW_STEPS_KEY = 'settings:fault_flow_steps';
+
+const DEFAULT_FAULT_FLOW_STEPS = [
+    {
+        id: 'ASK_FAULT_NAME',
+        label: 'İsim Soyisim',
+        redisKey: 'name',
+        sheetColumn: 'ISIM',
+        isActive: true,
+        message: `Hoşgeldiniz! 👋 Arıza kaydı oluşturabilmem için birkaç bilgiye ihtiyacım var.\n\nİsim soyisminiz nedir?`,
+    },
+    {
+        id: 'ASK_FAULT_ADDRESS',
+        label: 'Adres',
+        redisKey: 'address',
+        sheetColumn: 'ADRES',
+        isActive: true,
+        message: `Teşekkürler {{name}} Bey/Hanım! \n\nAçık adresiniz nedir? (İlçe, sokak ve bina/daire no)`,
+    },
+    {
+        id: 'ASK_FAULT_DEVICE',
+        label: 'Cihaz Modeli',
+        redisKey: 'device',
+        sheetColumn: 'CIHAZ_MODELI',
+        isActive: true,
+        message: `Adresinizi aldım! 📍\n\nArıza yapan cihazınızın markası ve modeli nedir?`,
+    },
+    {
+        id: 'ASK_FAULT_DETAIL',
+        label: 'Arıza Detayı',
+        redisKey: 'fault_detail',
+        sheetColumn: 'ARIZA_DETAYI',
+        isActive: true,
+        message: `Son olarak: Sorunu kısaca tarif edebilir misiniz? (Örn: Ekran kırık, çalışmıyor, ses var görüntü yok vb.)`,
+    },
+];
+
 const CONFIRMATION_KEY = 'settings:confirmation_message';
 const DEFAULT_CONFIRMATION =
     `✅ Talebiniz başarıyla alındı! Ekibimiz en kısa sürede sizinle iletişime geçecektir.`;
@@ -105,6 +143,21 @@ async function getFlowSteps() {
 async function saveFlowSteps(steps) {
     await redisSet(FLOW_STEPS_KEY, JSON.stringify(steps));
     setCache(FLOW_STEPS_KEY, steps);
+}
+
+async function getFaultFlowSteps() {
+    const cached = getCached(FAULT_FLOW_STEPS_KEY);
+    if (cached) return cached;
+
+    const raw = await redisGet(FAULT_FLOW_STEPS_KEY);
+    const value = raw ? JSON.parse(raw) : DEFAULT_FAULT_FLOW_STEPS;
+    setCache(FAULT_FLOW_STEPS_KEY, value);
+    return value;
+}
+
+async function saveFaultFlowSteps(steps) {
+    await redisSet(FAULT_FLOW_STEPS_KEY, JSON.stringify(steps));
+    setCache(FAULT_FLOW_STEPS_KEY, steps);
 }
 
 async function getConfirmationMessage() {
@@ -182,6 +235,8 @@ function invalidateCache() {
 module.exports = {
     getFlowSteps,
     saveFlowSteps,
+    getFaultFlowSteps,
+    saveFaultFlowSteps,
     getConfirmationMessage,
     saveConfirmationMessage,
     getSheetsConfig,
@@ -190,6 +245,7 @@ module.exports = {
     saveBlocklist,
     invalidateCache,
     DEFAULT_FLOW_STEPS,
+    DEFAULT_FAULT_FLOW_STEPS,
     DEFAULT_SHEETS_CONFIG,
     DEFAULT_BLOCKLIST,
 };

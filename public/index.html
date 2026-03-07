@@ -135,11 +135,33 @@
       <!-- Blocklist Card -->
       <div class="settings-card">
         <h3>🚫 Kara Liste (Engellenen Numaralar)</h3>
-        <p class="settings-hint">Botun yanıt vermemesini istediğiniz numaraları her satıra bir tane gelecek şekilde girin. (Örn: 905551234567)</p>
+        <p class="settings-hint">Botun yanıt vermemesini istediğiniz numaraları her satıra bir tane gelecek şekilde
+          girin. (Örn: 905551234567)</p>
         <div class="settings-row col">
           <textarea id="blocklistInput" class="mono" rows="6" placeholder="Her satıra bir numara..."></textarea>
         </div>
         <button class="btn-save" onclick="saveBlocklist()">💾 Kara Listeyi Kaydet</button>
+      </div>
+
+      <!-- Montaj Soruları Card -->
+      <div class="settings-card">
+        <h3>🛠️ Montaj Akış Soruları (JSON)</h3>
+        <p class="settings-hint">DİKKAT: JSON formatını bozmadan düzenleyin. İstenen soruları ve sütun (sheetColumn)
+          isimlerini değiştirebilirsiniz.</p>
+        <div class="settings-row col">
+          <textarea id="flowStepsInput" class="mono" rows="12" placeholder="[...]"></textarea>
+        </div>
+        <button class="btn-save" onclick="saveFlowSteps()">💾 Montaj Sorularını Kaydet</button>
+      </div>
+
+      <!-- Arıza Soruları Card -->
+      <div class="settings-card">
+        <h3>🔧 Arıza Akış Soruları (JSON)</h3>
+        <p class="settings-hint">Arıza kayıtları için botun soracağı soruları JSON formatında düzenleyin.</p>
+        <div class="settings-row col">
+          <textarea id="faultStepsInput" class="mono" rows="12" placeholder="[...]"></textarea>
+        </div>
+        <button class="btn-save" onclick="saveFaultSteps()">💾 Arıza Sorularını Kaydet</button>
       </div>
     </div>
   </div>

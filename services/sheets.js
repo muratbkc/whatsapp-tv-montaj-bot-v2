@@ -74,7 +74,7 @@ async function ensureColumns(sheet, requiredColumns) {
 
 /**
  * Append a customer record. Columns are determined by the active flow steps.
- * @param {Object} data - { answers: {key: value}, phone }
+ * @param {Object} data - { answers: {key: value}, phone, flowType }
  * @param {Array} activeSteps - active flow step definitions from settings
  */
 async function appendCustomer(data, activeSteps) {
@@ -82,13 +82,14 @@ async function appendCustomer(data, activeSteps) {
         const sheet = await getSheet();
 
         const stepColumns = activeSteps.map((s) => s.sheetColumn);
-        const requiredColumns = ['TARIH', 'TELEFON', ...stepColumns, 'DURUM'];
+        const requiredColumns = ['TARIH', 'TELEFON', 'TALEP_TIPI', ...stepColumns, 'DURUM'];
 
         await ensureColumns(sheet, requiredColumns);
 
         const row = {
             TARIH: getTRDate(),
             TELEFON: data.phone,
+            TALEP_TIPI: data.flowType === 'fault' ? 'Arıza' : 'Montaj',
             DURUM: '⏳ Bekliyor',
         };
 
@@ -117,12 +118,13 @@ async function getRecentCustomers(limit = 20) {
                 rowNumber: row.rowNumber,
                 tarih: row.get('TARIH') || '',
                 telefon: row.get('TELEFON') || '',
+                talep_tipi: row.get('TALEP_TIPI') || '',
                 durum: row.get('DURUM') || '',
                 columns: {},
             };
 
             headers.forEach((h) => {
-                if (!['TARIH', 'TELEFON', 'DURUM'].includes(h)) {
+                if (!['TARIH', 'TELEFON', 'TALEP_TIPI', 'DURUM'].includes(h)) {
                     entry.columns[h] = row.get(h) || '';
                 }
             });
@@ -188,11 +190,11 @@ async function initializeHeaders(sheetsId, googleCredsJson) {
     }
 
     if (existing.length === 0) {
-        const defaultHeaders = ['TARIH', 'ISIM', 'TELEFON', 'ADRES', 'TV_BOYUTU', 'MONTAJ_TIPI', 'DURUM'];
+        const defaultHeaders = ['TARIH', 'ISIM', 'TELEFON', 'TALEP_TIPI', 'ADRES', 'TV_BOYUTU', 'MONTAJ_TIPI', 'DURUM'];
         await sheet.setHeaderRow(defaultHeaders);
         console.log('[Sheets] Initialize: Default headers added to an empty sheet.');
 
-        const durumColumnIndex = defaultHeaders.indexOf('DURUM'); // should be 6
+        const durumColumnIndex = defaultHeaders.indexOf('DURUM'); // should be 7
 
         try {
             await authClient.request({

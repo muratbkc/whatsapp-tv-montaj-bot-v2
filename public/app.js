@@ -262,6 +262,14 @@
             // Blocklist
             const blocklistData = await apiGet('/api/settings/blocklist');
             $('#blocklistInput').value = (blocklistData || []).join('\n');
+
+            // Flow Steps
+            const flowStepsData = await apiGet('/api/settings/flow-steps');
+            $('#flowStepsInput').value = JSON.stringify(flowStepsData, null, 2);
+
+            // Fault Steps
+            const faultStepsData = await apiGet('/api/settings/fault-steps');
+            $('#faultStepsInput').value = JSON.stringify(faultStepsData, null, 2);
         } catch (err) {
             showToast(`Ayarlar yuklenemedi: ${err.message}`);
         }
@@ -295,6 +303,26 @@
             showToast('Kara liste kaydedildi ✅');
         } catch (err) {
             showToast(`Kara liste kaydedilemedi: ${err.message}`);
+        }
+    };
+
+    window.saveFlowSteps = async function () {
+        try {
+            const steps = JSON.parse($('#flowStepsInput').value);
+            await apiPost('/api/settings/flow-steps', { steps });
+            showToast('Montaj soruları kaydedildi ✅');
+        } catch (err) {
+            showToast(`Montaj JSON Kaydetme Hatası: ${err.message}`);
+        }
+    };
+
+    window.saveFaultSteps = async function () {
+        try {
+            const steps = JSON.parse($('#faultStepsInput').value);
+            await apiPost('/api/settings/fault-steps', { steps });
+            showToast('Arıza soruları kaydedildi ✅');
+        } catch (err) {
+            showToast(`Arıza JSON Kaydetme Hatası: ${err.message}`);
         }
     };
 
