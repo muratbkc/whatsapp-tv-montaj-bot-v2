@@ -47,9 +47,6 @@ _(Askı aparatı dahil değildir)_
 
 Montaj randevusu almak ister misiniz?`;
 
-const FAQ_HOURS =
-    '🕐 Çalışma saatlerimiz:\n\nHafta içi: 09:00 - 18:00\nCumartesi: 10:00 - 16:00\nPazar: Kapalı';
-
 const FAQ_AREA =
     "📍 Hizmet bölgelerimiz:\n\nİstanbul Avrupa Yakası'ndaki tüm ilçelere hizmet veriyoruz.";
 
@@ -65,7 +62,6 @@ module.exports = {
     UNKNOWN,
     CANCELLED,
     FAQ_PRICE,
-    FAQ_HOURS,
     FAQ_AREA,
     FAQ_DURATION,
 };

@@ -25,10 +25,6 @@ const FAQ_KEYWORDS = {
         keywords: ['fiyat', 'ucret', 'kac para', 'ne kadar', 'kaca', 'ücret', 'kaç para'],
         response: messages.FAQ_PRICE,
     },
-    hours: {
-        keywords: ['saat', 'calisma', 'kacta', 'ne zaman', 'acik mi', 'açık mı', 'çalışma'],
-        response: messages.FAQ_HOURS,
-    },
     area: {
         keywords: ['bolge', 'nereye', 'geliyor musunuz', 'hizmet', 'bölge', 'semt'],
         response: messages.FAQ_AREA,
