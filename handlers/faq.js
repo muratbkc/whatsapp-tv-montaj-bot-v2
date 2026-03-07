@@ -1,5 +1,4 @@
 // FAQ keyword matching module
-const messages = require('../templates/messages');
 
 function normalize(text) {
     return text
