@@ -21,18 +21,6 @@ function normalize(text) {
 }
 
 const FAQ_KEYWORDS = {
-    price: {
-        keywords: ['fiyat', 'ucret', 'kac para', 'ne kadar', 'kaca', 'ücret', 'kaç para'],
-        response: messages.FAQ_PRICE,
-    },
-    area: {
-        keywords: ['bolge', 'nereye', 'geliyor musunuz', 'hizmet', 'bölge', 'semt'],
-        response: messages.FAQ_AREA,
-    },
-    duration: {
-        keywords: ['kac gun', 'ne zaman gelir', 'sure', 'süre', 'kaç gün', 'zaman'],
-        response: messages.FAQ_DURATION,
-    },
     cancel: {
         keywords: ['iptal', 'vazgectim', 'dur', 'hayir', 'hayır', 'istemiyorum'],
         response: null,
