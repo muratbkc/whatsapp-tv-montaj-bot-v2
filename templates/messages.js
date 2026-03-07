@@ -35,24 +35,6 @@ const UNKNOWN = 'Üzgünüm, anlamadım. 🙏 Lütfen tekrar yazar mısınız?';
 
 const CANCELLED =
     'Talebiniz iptal edildi. Tekrar yardımcı olmamızı isterseniz merhaba yazabilirsiniz. 👋';
-
-// FAQ responses
-const FAQ_PRICE = `📌 Montaj fiyatlarımız:
-
-• 32" - 43"  →  500 ₺
-• 49" - 55"  →  600 ₺
-• 65" ve üzü →  750 ₺
-
-_(Askı aparatı dahil değildir)_
-
-Montaj randevusu almak ister misiniz?`;
-
-const FAQ_AREA =
-    "📍 Hizmet bölgelerimiz:\n\nİstanbul Avrupa Yakası'ndaki tüm ilçelere hizmet veriyoruz.";
-
-const FAQ_DURATION =
-    '⏱️ Montaj işlemi ortalama 30-60 dakika sürmektedir. Randevu günü ekibimiz sizi arayarak kesin saati bildirir.';
-
 module.exports = {
     WELCOME,
     ASK_ADDRESS,
@@ -61,7 +43,4 @@ module.exports = {
     CONFIRMATION,
     UNKNOWN,
     CANCELLED,
-    FAQ_PRICE,
-    FAQ_AREA,
-    FAQ_DURATION,
 };
