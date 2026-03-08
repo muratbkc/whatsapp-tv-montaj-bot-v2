@@ -501,16 +501,6 @@ async function flushBuffer(phone) {
 function startSelfPing() {
     const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${config.PORT}`;
     setInterval(async () => {
-        // Kontrol: Türkiye saati (UTC+3) ile 00:00 - 06:00 arasında mıyız?
-        const now = new Date();
-        const istanbulTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
-        const currentHour = istanbulTime.getHours();
-
-        if (currentHour >= 0 && currentHour < 6) {
-            console.log(`[Ping] Saat ${istanbulTime.getHours()}:${istanbulTime.getMinutes()}. Gece modundayiz, Render'in uyumasina izin veriliyor (ping atilmiyor).`);
-            return; // Ping atma, çık
-        }
-
         try {
             await fetch(`${url}/health`);
             console.log('[Ping] Self-ping OK');
