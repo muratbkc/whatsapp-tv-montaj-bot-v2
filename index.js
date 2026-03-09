@@ -329,7 +329,7 @@ async function startBot() {
         auth: state,
         browser: Browsers.ubuntu('Chrome'),
         connectTimeoutMs: 60000,
-        logger: require('pino')({ level: 'warn' }),
+        logger: require('pino')({ level: 'silent' }),
     };
 
     // Only add version if we successfully fetched it
@@ -414,6 +414,7 @@ async function startBot() {
             if (msg.key.fromMe) continue;
             if (msg.key.remoteJid === 'status@broadcast') continue;
             if (msg.key.remoteJid?.endsWith('@g.us')) continue;
+            if (msg.key.remoteJid?.includes('@lid')) continue;
 
             const text =
                 msg.message.conversation ||
@@ -440,9 +441,6 @@ async function startBot() {
                 phone = msg.key.participant.replace('@s.whatsapp.net', '').replace('@c.us', '');
             } else if (phone.includes('@s.whatsapp.net')) {
                 phone = phone.replace('@s.whatsapp.net', '');
-            } else if (phone.includes('@lid')) {
-                phone = phone.replace('@lid', '');
-                console.warn(`[Bot] ⚠️ Could not resolve real phone for ${msg.key.remoteJid}`);
             }
 
             // ---- Blocklist Check ----
